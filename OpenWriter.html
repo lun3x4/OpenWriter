@@ -1,0 +1,2951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Document1 - OpenWriter</title>
+  <style>
+    /* ------------------------------------------------------------------
+       Design tokens
+       ------------------------------------------------------------------ */
+    :root {
+      --bg-app          : #f5f5f5;
+      --bg-ribbon       : #ffffff;
+      --bg-status       : #f5f5f5;
+      --bg-canvas       : #f5f5f5;
+      --bg-page         : #ffffff;
+      --bg-hover        : #ffffff;
+      --bg-hover-strong : #ffffff;
+      --bg-active       : #ffffff;
+      --bg-search       : #fafafa;
+
+      --text        : #000000;
+      --text-muted  : #595959;
+      --text-page   : #000000;
+      --text-accent : #185abd;
+      --heading     : #0f4761;
+      --heading-sub : #0f4761;
+
+      --line        : #e6e6e6;
+      --line-strong : #d2d0ce;
+
+      --accent       : #185abd;
+      --accent-hover : #0f4ea0;
+      --accent-on    : #ffffff;
+
+      --radius-xs   : 4px;
+      --radius-sm   : 6px;
+      --radius      : 8px;
+      --radius-md   : 12px;
+      --radius-lg   : 16px;
+      --radius-pill : 999px;
+
+      --shadow-sm   : 0 1px 2px rgba(16, 24, 40, 0.06);
+      --shadow-md   : 0 8px 28px rgba(16, 24, 40, 0.14);
+      --shadow-page : 0 2px 10px rgba(16, 24, 40, 0.12), 0 0 0 1px rgba(16, 24, 40, 0.04);
+
+      --page-margin : 96px;
+      --ui-font     : "Segoe UI", system-ui, Calibri, Arial, sans-serif;
+      --page-font   : Calibri, "Segoe UI", Arial, sans-serif;
+    }
+
+    body.dark {
+      --bg-app          : #1c1c1c;
+      --bg-ribbon       : #2a2a2a;
+      --bg-status       : #1c1c1c;
+      --bg-canvas       : #1c1c1c;
+      --bg-page         : #2b2b2a;
+      --bg-hover        : #333231;
+      --bg-hover-strong : #3d3c3a;
+      --bg-active       : #003f66;
+      --bg-search       : #302f2d;
+
+      --text        : #d6d6d6;
+      --text-muted  : #b9b9b9;
+      --text-page   : #e8e6e3;
+      --text-accent : #296ac5;
+      --heading     : #aecde7;
+      --heading-sub : #aecde7;
+
+      --line        : #3d3d3c;
+      --line-strong : #333231;
+
+      --accent       : #296ac5;
+      --accent-hover : #296ac5;
+      --accent-on    : #0b1b26;
+
+      --shadow-md   : 0 8px 28px rgba(0, 0, 0, 0.4);
+      --shadow-page : 0 2px 10px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    /* ------------------------------------------------------------------
+       Base
+       ------------------------------------------------------------------ */
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      font: 14px/1.35 var(--ui-font);
+      color: var(--text);
+      background: var(--bg-canvas);
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    /* Shared stroke icons. Filled marks use .fi on the path. */
+    svg.ic {
+      width: 15px;
+      height: 15px;
+      display: block;
+      flex: none;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 0.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    svg.ic .fi {
+      fill: currentColor;
+      stroke: none;
+    }
+
+    svg.ic-sm { width: 10px; height: 10px; }
+    svg.ic-md { width: 14px; height: 14px; }
+
+    .sprites {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+    }
+
+    /* ------------------------------------------------------------------
+       Top bar
+       ------------------------------------------------------------------ */
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr minmax(0, 420px) 1fr;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--bg-app);
+    }
+
+    .topbar-left,
+    .topbar-right { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .topbar-right { justify-content: flex-end; }
+
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-sm);
+      background: none;
+      color: var(--text);
+    }
+
+    .icon-btn:hover { background: var(--bg-hover); }
+
+    .wordmark {
+      width: 25px;
+      height: 25px;
+      border-radius: var(--radius-sm);
+      background: #185abd;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 700 12px Georgia, serif;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .docname {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      color: var(--text-muted);
+    }
+
+    .docname input {
+      width: 110px;
+      max-width: 40vw;
+      padding: 6px 8px;
+      border: 0;
+      border-radius: var(--radius-sm);
+      background: none;
+      color: var(--text);
+      font: 600 16px var(--ui-font);
+      text-align: left;
+    }
+
+    .docname input:hover,
+    .docname input:focus {
+      background: var(--bg-hover);
+      outline:None;
+    }
+
+    .search {
+      display: flex;
+      justify-content: center;
+      min-width: 0;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 80%;
+      padding: 7px 14px;
+      border-radius: var(--radius-pill);
+      background: var(--bg-search);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 50%;
+      background: #5b2d8e;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ------------------------------------------------------------------
+       Tabs
+       ------------------------------------------------------------------ */
+    .tabrow {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      background: var(--bg-app);
+    }
+
+    .tabs { display: flex; align-items: stretch; }
+
+    .tab {
+      padding: 10px 12px 8px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: none;
+      font-size: 14px;
+      border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    }
+
+    .tab.file { font-weight: 600; }
+    .tab:hover {color:var(--text);
+      border-bottom-color:var(--line);
+    }
+
+    .tab.on {
+      color: var(--text);
+      font-weight: 700;
+      border-bottom-color: var(--text-accent);
+    }
+
+    .spacer { flex: 1; }
+
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 6px 3px;
+      padding: 6px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-pill);
+      background: none;
+      font-size: 13px;
+    }
+
+    .pill:hover { background: var(--bg-hover); }
+
+    .pill.primary {
+      background: #185abd;
+      border-color: #185abd;
+      color: #fff;
+    }
+
+    .pill.primary:hover { background: var(--accent-hover); }
+
+    .menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 8px;
+      z-index: 50;
+      min-width: 240px;
+      padding: 6px 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--bg-ribbon);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+
+    .menu.on { display: block; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 14px;
+      border: 0;
+      background: none;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    .menu-item:hover { background: var(--bg-active); }
+
+    .menu-label {
+      margin-top: 4px;
+      padding: 8px 14px 4px;
+      border-top: 1px solid var(--line);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    /* ------------------------------------------------------------------
+       Ribbon (detached, rounded, fixed-size card)
+       ------------------------------------------------------------------ */
+    .ribbon {
+      display: none;
+      flex: none;
+      align-items: stretch;
+      height: 96px;
+      margin: 6px 12px 10px;
+      padding: 6px 4px 6px 6px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--bg-ribbon);
+      box-shadow: var(--shadow-sm);
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+    }
+
+    .ribbon.on { display: flex; }
+    body.ribbon-collapsed .ribbon.on { display: none; }
+
+    .group {
+      position: relative;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: max-content;
+      padding: 0 10px;
+      border-right: 1px solid var(--line);
+    }
+
+    .group:last-of-type { border-right: 0; }
+
+    .gbody {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .row { display: flex; align-items: center; gap: 2px; }
+    .col { display: flex; flex-direction: column; gap: 2px; }
+
+    .caption {
+      height: 14px;
+      margin-top: 2px;
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 14px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .rbtn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 5px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      font-size: 12px;
+    }
+
+    .rbtn:hover:not(:disabled) {
+      background: var(--bg-hover);
+      border-color: var(--bg-hover-strong);
+    }
+
+    .rbtn.on {
+      background: var(--bg-hover-strong);
+      border-color: var(--line-strong);
+    }
+
+    .rbtn:disabled { opacity: 0.4; cursor: default; }
+
+    .rbtn.big {
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 2px;
+      min-width: 48px;
+      height: 64px;
+      padding: 3px 5px 0;
+      font-size: 11px;
+      line-height: 1.15;
+      text-align: center;
+    }
+
+    .rbtn.big .lbl { display: block; white-space: nowrap; }
+
+    .col.tight .rbtn { height: 21px; }
+
+    .rbtn.line {
+      justify-content: flex-start;
+      gap: 6px;
+      height: 20px;
+      padding: 0 6px;
+    }
+
+    svg.ic-lg { width: 24px; height: 24px; }
+    svg.ic .ac { stroke: var(--accent); }
+    svg.ic .fi.ac { fill: var(--accent); stroke: none; }
+    svg.ic.blue { color: var(--accent); }
+    svg.ic.red { color: #e5533d; }
+    svg.chev { width: 9px; height: 9px; opacity: 0.85; }
+
+    /* colour buttons (highlight, font colour, shading) */
+    .colorbtn { min-width: 40px; cursor: pointer; }
+    .colorbtn input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .colorbtn .bar {
+      position: absolute;
+      left: 6px;
+      bottom: 3px;
+      width: 14px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    /* icon buttons that hide a native <select> */
+    .selbtn select {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .select,
+    .field {
+      height: 28px;
+      padding: 0 6px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-sm);
+      background: var(--bg-ribbon);
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+    }
+
+    .selwrap { position: relative; display: flex; align-items: center; }
+    .selwrap select { appearance: none; padding-right: 22px; }
+    .selwrap > svg {
+      position: absolute;
+      right: 7px;
+      pointer-events: none;
+    }
+
+    .select.font { width: 132px; }
+
+    .size-box {
+      position: relative;
+      width: 54px;
+    }
+
+    .size-box input {
+      width: 100%;
+      height: 28px;
+      padding: 0 20px 0 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-sm);
+      background: var(--bg-ribbon);
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+    }
+
+    .size-box input::-webkit-calendar-picker-indicator {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 22px;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .size-box > svg {
+      position: absolute;
+      right: 7px;
+      top: 9px;
+      pointer-events: none;
+    }
+
+    .launcher {
+      position: absolute;
+      right: 4px;
+      bottom: 1px;
+      width: 16px;
+      height: 16px;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-xs);
+      background: none;
+      color: var(--text-muted);
+    }
+
+    .launcher:hover { color: var(--text); background: var(--bg-hover); }
+
+    .ribbon-toggle {
+      position: sticky;
+      right: 0;
+      align-self: flex-end;
+      flex: none;
+      margin-left: auto;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-sm);
+      background: var(--bg-ribbon);
+      color: var(--text);
+    }
+
+    .ribbon-toggle:hover { background: var(--bg-hover); }
+
+    /* styles gallery */
+    .style-row {
+      display: flex;
+      align-items: stretch;
+      height: 52px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--bg-ribbon);
+    }
+
+    .style-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 130px;
+      margin: 3px;
+      border: 2px solid var(--text-muted);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text);
+      line-height: 1.25;
+    }
+
+    .style-card b { font-size: 14px; font-weight: 600; }
+    .style-card small { font-size: 10px; color: var(--text-muted); }
+
+    .style-more {
+      width: 26px;
+      border: 0;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      background: none;
+      color: var(--text);
+    }
+
+    .style-more:hover { background: var(--bg-hover); }
+
+    .style-pop {
+      display: none;
+      position: fixed;
+      z-index: 60;
+      min-width: 190px;
+      padding: 6px 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--bg-ribbon);
+      box-shadow: var(--shadow-md);
+    }
+
+    .style-pop.on { display: block; }
+
+    .style-pop button {
+      display: block;
+      width: 100%;
+      padding: 7px 14px;
+      border: 0;
+      background: none;
+      text-align: left;
+    }
+
+    .style-pop button:hover { background: var(--bg-active); }
+    .style-pop .h1 { font: 600 18px var(--ui-font); color: var(--heading); }
+    .style-pop .h2 { font: 600 15px var(--ui-font); color: var(--heading); }
+    .style-pop .h3 { font: italic 600 13px var(--ui-font); color: var(--heading-sub); }
+
+    .edit-list { display: flex; flex-direction: column; gap: 2px; }
+    .edit-list .rbtn { justify-content: flex-start; width: 88px; height: 26px; gap: 8px; }
+
+    /* layout: indent / spacing fields */
+    .fields { flex-direction: row; align-items: center; gap: 18px; }
+    .fgroup { display: flex; flex-direction: column; gap: 2px; }
+    .ftitle { padding-left: 2px; font-size: 12px; line-height: 16px; color: var(--text); }
+    .frow { display: flex; align-items: center; gap: 6px; height: 22px; font-size: 12px; }
+    .frow span { width: 42px; }
+
+    .numfield {
+      display: flex;
+      align-items: center;
+      width: 76px;
+      height: 22px;
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-sm);
+      background: var(--bg-ribbon);
+    }
+
+    .numfield input {
+      flex: 1;
+      min-width: 0;
+      height: 20px;
+      padding: 0 6px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+    }
+
+    .numfield input:focus-visible { outline: none; }
+    .numfield:focus-within { border-color: var(--accent); }
+
+    .nstep { display: flex; flex-direction: column; }
+    .nstep button {
+      width: 18px;
+      height: 10px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text-muted);
+    }
+    .nstep button:hover { background: var(--bg-hover); color: var(--text); }
+
+    /* view: zoom */
+    .zoomcol { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+    .zoomcol .zl { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+    .select.zoomsel { width: 84px; }
+
+    .ruler {
+      display: none;
+      height: 18px;
+      margin: 0 12px 6px;
+      border-radius: var(--radius-sm);
+      background:
+        repeating-linear-gradient(to right, var(--text-muted) 0 1px, transparent 1px 96px) bottom / 100% 8px no-repeat,
+        repeating-linear-gradient(to right, var(--line-strong) 0 1px, transparent 1px 24px) bottom / 100% 4px no-repeat,
+        var(--bg-ribbon);
+    }
+
+    body.show-ruler .ruler { display: block; }
+
+    /* ------------------------------------------------------------------
+       Document canvas
+       ------------------------------------------------------------------ */
+    .workspace {
+      flex: 1;
+      display: grid;
+      position: relative;
+      grid-template-columns: minmax(0, 1fr) auto;
+      min-height: 0;
+    }
+
+    .nav-toggle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 36px;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      padding-top: 10px;
+      padding-left: 14px;
+      background: var(--bg-canvas);
+    }
+
+    .nav-toggle button {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: var(--radius-sm);
+      background: none;
+      color: var(--text-muted);
+    }
+
+    .nav-toggle button:hover { background: var(--bg-hover); color: var(--text); }
+
+    .work-main {
+      overflow: auto;
+      scrollbar-gutter: stable both-edges;
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px 60px;
+    }
+
+    .sheet {
+      width: 816px;
+      min-height: var(--page-h, 1056px);
+      padding: var(--page-margin);
+      display: flex;
+      flex-direction: column;
+      background: transparent;
+      transition: width 0.2s ease;
+    }
+
+    #page {
+      flex: 1;
+      min-height: 300px;
+      outline: none;
+      font: 11pt/1.5 var(--page-font);
+      color: var(--text-page);
+      overflow-wrap: break-word;
+    }
+
+    #page p { margin: 0 0 8pt; }
+    #page h1 { font: 600 20pt/1.2 var(--page-font); color: var(--heading); margin: 16pt 0 4pt; }
+    #page h2 { font: 600 16pt/1.25 var(--page-font); color: var(--heading); margin: 14pt 0 4pt; }
+    #page h3 { font: italic 600 13pt/1.3 var(--page-font); color: var(--heading-sub); margin: 12pt 0 4pt; }
+    #page blockquote {
+      margin: 8pt 24pt;
+      padding-left: 12pt;
+      border-left: 3px solid var(--line);
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    #page ul, #page ol { margin: 0 0 8pt; padding-left: 24pt; }
+    #page table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
+    #page td { border: 1px solid #808080; padding: 5px 7px; min-width: 40px; }
+    #page img { max-width: 100%; height: auto; display: block; margin: 8pt auto; border-radius: 4px; }
+    #page a { color: #0563c1; }
+
+    .eq { font: italic 13pt Cambria, serif; padding: 0 4px; }
+
+    .shape {
+      display: inline-block;
+      width: 140px;
+      height: 70px;
+      margin: 6px;
+      background: #dae3f3;
+      border: 2px solid #2e74b5;
+      border-radius: 8px;
+    }
+
+    .page-break {
+      margin: 18px calc(var(--page-margin) * -1);
+      padding-top: 3px;
+      border-top: 1px dashed #808080;
+      text-align: center;
+      color: var(--text-muted);
+      font: 10px var(--ui-font);
+      user-select: none;
+    }
+
+    .comment-mark {
+      background: #fdf2a7;
+      border-bottom: 2px solid #e0b400;
+      border-radius: 2px;
+    }
+
+    .toc {
+      margin-bottom: 10px;
+      padding: 0 0 14px;
+      font: 11pt var(--page-font);
+    }
+
+    .toc .toc-title {
+      margin-bottom: 6px;
+      font: 600 15pt var(--page-font);
+      color: var(--heading);
+    }
+
+    .toc a {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-page);
+      text-decoration: none;
+    }
+
+    .toc a:hover { text-decoration: underline; color: #0563c1; }
+
+    .chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      height: 170px;
+      margin: 12px 0;
+      padding: 0 6px;
+      border-bottom: 1px solid var(--text-muted);
+    }
+
+    .chart div { flex: 1; text-align: center; font: 10px var(--ui-font); }
+    .chart i {
+      display: block;
+      width: 70%;
+      margin: 0 auto 4px;
+      background: #4472c4;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .header, .footer {
+      display: none;
+      padding: 4px 0;
+      color: var(--text-muted);
+      font: 10pt var(--page-font);
+    }
+
+    .header { border-bottom: 1px dashed var(--line); margin-bottom: 12px; }
+    .footer { border-top: 1px dashed var(--line); margin-top: 12px; text-align: center; }
+    body.show-hf .header,
+    body.show-hf .footer { display: block; }
+
+    .sidebar {
+      display: none;
+      width: 272px;
+      background: var(--bg-ribbon);
+      border-left: 1px solid var(--line);
+      overflow: auto;
+    }
+
+    body.show-comments .sidebar {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    #comments-list { padding: 12px; overflow: auto; }
+
+    .comment-card {
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-left: 3px solid #e0b400;
+      border-radius: var(--radius-sm);
+      background: var(--bg-canvas);
+      font-size: 12px;
+    }
+
+    .comment-card b { color: var(--heading); }
+
+    /* ------------------------------------------------------------------
+       Status bar
+       ------------------------------------------------------------------ */
+    .statusbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 6px 12px;
+      background: var(--bg-status);
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .ghost {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border: 0;
+      background: none;
+      border-radius: var(--radius-xs);
+    }
+
+    .ghost:hover { text-decoration: underline; }
+
+    .view-btns { display: flex; gap: 2px; }
+
+    .view-btns button {
+      width: 26px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: var(--radius-xs);
+      background: none;
+    }
+
+    .view-btns button:hover,
+    .view-btns button.on { background: var(--bg-hover); }
+
+    .statusbar input[type="range"] {
+      width: 90px;
+      accent-color: var(--accent);
+    }
+
+    .zoom-label { min-width: 35px; text-align: right; }
+
+    .zoom-btn {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: var(--radius-xs);
+      background: none;
+    }
+
+    .zoom-btn:hover { background: var(--bg-hover); }
+
+    /* ------------------------------------------------------------------
+       Modes
+       ------------------------------------------------------------------ */
+    body.focus-mode .topbar,
+    body.focus-mode .tabrow,
+    body.focus-mode .ribbon,
+    body.focus-mode .ruler,
+    body.focus-mode .sidebar,
+    body.focus-mode .nav-toggle { display: none !important; }
+
+    body.focus-mode .workspace { grid-template-columns: 1fr; }
+    body.focus-mode .work-main { padding: 48px 0; }
+    body.focus-mode .sheet { width: 680px; --page-margin: 72px; }
+
+    body.dark.page-light {
+      --bg-page: #ffffff;
+      --text-page: #000000;
+      --heading: #185abd;
+      --heading-sub: #1f3864;
+    }
+
+    .sheet.bordered .pgcard { outline: 2px solid var(--accent); outline-offset: -40px; }
+
+    #page .note { margin: 4pt 0; font-size: 9pt; }
+
+    @media print {
+      .topbar, .tabrow, .ribbon, .ruler, .statusbar, .sidebar, .nav-toggle { display: none !important; }
+      .workspace { display: block; }
+      .work-main { padding: 0; }
+      .sheet {
+        box-shadow: none;
+        width: auto;
+        min-height: 0;
+        padding: 0;
+        border-radius: 0;
+        background: #fff;
+      }
+      #page { color: #000; }
+    }
+
+    /* minimalist zoom slider */
+    .statusbar .zoom-btn { display: none; }
+    .statusbar input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 110px;
+      height: 16px;
+      margin: 0 6px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .statusbar input[type="range"]::-webkit-slider-runnable-track {
+      height: 2px;
+      border-radius: 2px;
+      background: linear-gradient(to right, var(--accent) var(--fill, 33%), rgba(128,128,128,.55) var(--fill, 33%));
+    }
+    .statusbar input[type="range"]::-moz-range-track { height: 2px; border-radius: 2px; background: rgba(128,128,128,.55); }
+    .statusbar input[type="range"]::-moz-range-progress { height: 2px; border-radius: 2px; background: var(--accent); }
+    .statusbar input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      box-sizing: border-box;
+      width: 13px;
+      height: 13px;
+      margin-top: -5.5px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      background: var(--bg-ribbon);
+    }
+    .statusbar input[type="range"]::-moz-range-thumb {
+      box-sizing: border-box;
+      width: 13px;
+      height: 13px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      background: var(--bg-ribbon);
+    }
+    .statusbar input[type="range"]:focus-visible { outline: none; }
+
+    /* separate page cards */
+    #page-bgs { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+    .pgcard {
+      position: absolute;
+      left: 0; right: 0;
+      height: var(--page-h, 1056px);
+      background: var(--bg-page);
+      border-radius: 10px;
+      box-shadow: var(--shadow-page);
+    }
+    #page, .sheet .header, .sheet .footer { position: relative; z-index: 1; }
+
+    /* grey text selection */
+    #page ::selection, #page::selection,
+    .header ::selection, .footer ::selection {
+      background: rgba(128, 128, 128, 0.38);
+      color: inherit;
+    }
+
+    /* selection pop-up (mini toolbar) */
+    .selpop {
+      position: fixed;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      gap: 2px;
+      padding: 4px 6px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--bg-ribbon);
+      color: var(--text);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+      font: 12px var(--ui-font);
+      user-select: none;
+    }
+    .selpop.on { display: flex; }
+    .selpop select, .selpop input[type="text"] {
+      height: 26px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-xs);
+      background: transparent;
+      color: var(--text);
+      font: 12px var(--ui-font);
+    }
+    .selpop select option { color: #000; }
+    .selpop .sp-font { width: 92px; }
+    .selpop .sp-style { width: 78px; }
+    .selpop .sp-size { width: 38px; text-align: center; padding: 0 2px; }
+    .selpop .sp-btn {
+      position: relative;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: var(--radius-xs);
+      background: none;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .selpop .sp-btn:hover { background: rgba(128, 128, 128, 0.25); }
+    .selpop .sp-btn.on { background: rgba(128, 128, 128, 0.4); }
+    .selpop .sp-btn input[type="color"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .selpop .sp-btn .bar {
+      position: absolute;
+      left: 6px; right: 6px; bottom: 3px;
+      height: 3px;
+      border-radius: 1px;
+    }
+    .selpop .sp-sep { width: 1px; height: 18px; margin: 0 3px; background: var(--line-strong); }
+
+
+    /* dialogs, menus, toast */
+    .ow-ov { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
+    .ow-dlg { width: min(520px, 92vw); max-height: 86vh; display: flex; flex-direction: column; border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--bg-ribbon); color: var(--text); box-shadow: 0 12px 40px rgba(0,0,0,.4); font: 13px var(--ui-font); }
+    .ow-dlg.wide { width: min(640px, 94vw); }
+    .ow-head { display: flex; align-items: center; padding: 14px 18px 8px; font-size: 16px; font-weight: 600; }
+    .ow-head .x { margin-left: auto; width: 28px; height: 28px; border: 0; border-radius: var(--radius-xs); background: none; color: var(--text-muted); font-size: 18px; cursor: pointer; }
+    .ow-head .x:hover { background: rgba(128,128,128,.25); }
+    .ow-body { padding: 6px 18px 12px; overflow: auto; line-height: 1.45; }
+    .ow-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 18px 16px; }
+    .ow-btn { padding: 7px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius-pill); background: transparent; color: var(--text); font: 600 13px var(--ui-font); cursor: pointer; }
+    .ow-btn:hover { background: rgba(128,128,128,.2); }
+    .ow-btn.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-on); }
+    .ow-btn.primary:hover { background: var(--accent-hover); }
+    .ow-btn.sm { padding: 3px 10px; font-size: 12px; }
+    .ow-dlg label.f { display: block; margin: 10px 0 3px; color: var(--text-muted); font-size: 12px; }
+    .ow-dlg input[type="text"], .ow-dlg input[type="number"], .ow-dlg input[type="url"], .ow-dlg select, .ow-dlg textarea { width: 100%; box-sizing: border-box; padding: 7px 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: transparent; color: var(--text); font: 13px var(--ui-font); }
+    .ow-dlg select option { color: #000; }
+    .ow-dlg textarea { min-height: 110px; resize: vertical; }
+    .ow-dlg .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    .ow-dlg .checks { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; }
+    .ow-dlg .checks label { display: flex; align-items: center; gap: 6px; }
+    .ow-dlg .row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .ow-dlg .row:last-child { border-bottom: 0; }
+    .ow-dlg .row .grow { flex: 1; min-width: 0; }
+    .ow-dlg .row small, .ow-dlg small.m { color: var(--text-muted); }
+    .ow-dlg .score { display: flex; gap: 22px; margin: 6px 0 10px; }
+    .ow-dlg .score b { display: block; font-size: 22px; }
+    .ow-menu { position: fixed; z-index: 1900; min-width: 190px; padding: 5px 0; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--bg-ribbon); color: var(--text); box-shadow: 0 6px 22px rgba(0,0,0,.35); font: 13px var(--ui-font); }
+    .ow-mi { display: flex; width: 100%; padding: 7px 14px; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .ow-mi:hover { background: rgba(128,128,128,.25); }
+    .ow-mi.on::before { content: "✓"; margin-right: 8px; margin-left: -4px; }
+    .ow-mi.pad { padding-left: 26px; }
+    .ow-mi.on.pad { padding-left: 14px; }
+    .ow-sep { height: 1px; margin: 4px 0; background: var(--line); }
+    .ow-toast { position: fixed; left: 50%; bottom: 50px; z-index: 3000; max-width: 80vw; transform: translateX(-50%); padding: 9px 16px; border-radius: var(--radius-pill); background: #323232; color: #fff; font: 13px var(--ui-font); box-shadow: 0 4px 16px rgba(0,0,0,.35); }
+    .rbtn.on { background: rgba(128,128,128,.28); }
+
+    /* lists, marks, media */
+    #page ol.ml { list-style: decimal; }
+    #page ol.ml ol { list-style: lower-alpha; }
+    #page ol.ml ol ol { list-style: lower-roman; }
+    #page ul.check { list-style: none; padding-left: 4px; }
+    #page ul.check > li { position: relative; padding-left: 26px; cursor: text; }
+    #page ul.check > li::before { content: ""; position: absolute; left: 0; top: calc(.3em + var(--push, 0px)); width: 15px; height: 15px; box-sizing: border-box; border: 1.5px solid var(--text-muted); border-radius: 3px; cursor: pointer; }
+    #page ul.check > li.done { color: var(--text-muted); text-decoration: line-through; }
+    #page ul.check > li.done::before { content: "✓"; border-color: var(--accent); background: var(--accent); color: #fff; font: 700 11px/12px sans-serif; text-align: center; }
+    body.show-marks #page :is(p, h1, h2, h3, blockquote, li)::after { content: "¶"; margin-left: 3px; color: #6b8fd6; font-size: .9em; font-weight: 400; font-style: normal; text-decoration: none; }
+    #page .bookmark::before { content: "\1F516"; font-size: .7em; opacity: .55; }
+    #page .video-embed { position: relative; width: 100%; padding-top: 56.25%; margin: 8pt 0; }
+    #page .video-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    #page video { max-width: 100%; display: block; margin: 8pt auto; }
+    #page hr { border: 0; border-top: 1px solid var(--text-muted); margin: 10pt 0; }
+    .nav-item { display: block; width: 100%; padding: 5px 8px; border: 0; border-radius: var(--radius-xs); background: none; color: var(--text); text-align: left; font: 13px var(--ui-font); cursor: pointer; }
+    .nav-item:hover { background: rgba(128,128,128,.22); }
+
+    /* automatic pagination */
+    .sheet { position: relative; align-self: flex-start; flex-shrink: 0; }
+    #page > *, #page > ul > li, #page > ol > li { padding-top: var(--push, 0px); }
+    #page > table[style*="--push"], #page > img[style*="--push"] { padding-top: 0; margin-top: calc(var(--push) + 8pt); }
+    @media print {
+      #page > *, #page > ul > li, #page > ol > li { padding-top: 0 !important; }
+      #page > table[style*="--push"], #page > img[style*="--push"] { margin-top: 8pt !important; }
+      .selpop { display: none !important; }
+      #page-bgs { display: none; }
+    }
+  </style>
+</head>
+<body class="dark">
+  <!-- Shared icons. Edit a symbol once to update every button that uses it. -->
+  <svg class="sprites" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-grid" viewBox="0 0 16 16">
+      <circle cx="3" cy="3" r="1.15" class="fi"/>
+      <circle cx="8" cy="3" r="1.15" class="fi"/>
+      <circle cx="13" cy="3" r="1.15" class="fi"/>
+      <circle cx="3" cy="8" r="1.15" class="fi"/>
+      <circle cx="8" cy="8" r="1.15" class="fi"/>
+      <circle cx="13" cy="8" r="1.15" class="fi"/>
+      <circle cx="3" cy="13" r="1.15" class="fi"/>
+      <circle cx="8" cy="13" r="1.15" class="fi"/>
+      <circle cx="13" cy="13" r="1.15" class="fi"/>
+    </symbol>
+    <symbol id="i-chevron" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+    <symbol id="i-chevron-up" viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.25"/><path d="M10.2 10.2L13.5 13.5"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 16 16">
+      <circle cx="8" cy="8" r="2.2"/>
+      <path d="M8 1.7v1.6M8 12.7v1.6M14.3 8h-1.6M3.3 8H1.7M12.4 3.6l-1.1 1.1M4.7 11.3l-1.1 1.1M12.4 12.4l-1.1-1.1M4.7 4.7 3.6 3.6"/>
+    </symbol>
+    <symbol id="i-comment" viewBox="0 0 16 16"><path d="M3 3.5h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7L4 13.5V11.5H3a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"/></symbol>
+    <symbol id="i-catchup" viewBox="0 0 16 16"><path d="M3.2 8A4.8 4.8 0 1 1 5 12.1"/><path d="M3.2 8V4.8M3.2 8h3.2"/></symbol>
+    <symbol id="i-share" viewBox="0 0 16 16">
+      <circle cx="12" cy="3.5" r="1.6"/>
+      <circle cx="4.2" cy="8" r="1.6"/>
+      <circle cx="12" cy="12.5" r="1.6"/>
+      <path d="M5.7 7.2l4.5-2.4M5.7 8.8l4.5 2.4"/>
+    </symbol>
+    <symbol id="i-file" viewBox="0 0 16 16"><path d="M4.5 2.5h6l3 3v8h-9z"/><path d="M10.5 2.5v3h3"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 16 16"><path d="M2.5 5.5h11v7h-11z"/><path d="M2.5 5.5l2.2-2.5h4.4l2.2 2.5"/></symbol>
+    <symbol id="i-lines" viewBox="0 0 16 16"><path d="M5 5.5h6M5 8h6M5 10.5h4"/><path d="M4.5 2.5h6l3 3v8h-9z"/></symbol>
+    <symbol id="i-code" viewBox="0 0 16 16"><path d="M2.5 3.5 3.6 13l4.4 1.4L12.4 13l1.1-9.5"/><path d="M5.5 7.2l-1.4 1.3 1.4 1.3M10.5 7.2l1.4 1.3-1.4 1.3"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 16 16"><path d="M5.5 4.2 2.5 7.2l3 3"/><path d="M2.5 7.2h7.2a3.4 3.4 0 0 1 0 6.8H8"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 16 16"><path d="M10.5 4.2l3 3-3 3"/><path d="M13.5 7.2H6.3a3.4 3.4 0 0 0 0 6.8H8"/></symbol>
+    <symbol id="i-paste" viewBox="0 0 16 16"><rect x="4" y="3.5" width="8.5" height="10.5" rx="1.5"/><rect x="6" y="2" width="4" height="2.4" rx="0.8" class="fi"/></symbol>
+    <symbol id="i-cut" viewBox="0 0 16 16"><circle cx="4.2" cy="4.2" r="1.6"/><circle cx="4.2" cy="11.8" r="1.6"/><path d="M5.5 5.5 13 13M5.5 10.5 13 3"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 16 16"><rect x="5.5" y="5" width="7.5" height="8.5" rx="1.2"/><path d="M3.5 11V4.2A1.2 1.2 0 0 1 4.7 3h6.3"/></symbol>
+    <symbol id="i-painter" viewBox="0 0 16 16"><path d="M3.5 2.5h6.5v3H3.5z"/><path d="M6 5.5v2.8H4.4L3.8 13.5h4.4l-.6-5.2H6"/></symbol>
+    <symbol id="i-grow" viewBox="0 0 16 16"><path d="M2.5 13l3.2-8.5h1.1L10 13M4 10.2h4.6"/><path d="M12.2 3.2v5M9.8 5.7h4.8"/></symbol>
+    <symbol id="i-shrink" viewBox="0 0 16 16"><path d="M2.5 13l3.2-8.5h1.1L10 13M4 10.2h4.6"/><path d="M9.8 5.7h4.8"/></symbol>
+    <symbol id="i-clear" viewBox="0 0 16 16"><path d="M2.2 13 5.4 4.5h1.1L9.7 13M3.7 10.2h4.6"/><path d="M10 4.2l4.2 8.2M14.2 4.2 10 12.4"/></symbol>
+    <symbol id="i-bold" viewBox="0 0 16 16"><path d="M4.2 2.8h4.4a2.5 2.5 0 0 1 0 5H4.2zm0 5h5a2.7 2.7 0 0 1 0 5.4H4.2z" class="fi"/></symbol>
+    <symbol id="i-italic" viewBox="0 0 16 16"><path d="M7 2.8h5M4 13.2h5M9.4 2.8 6.8 13.2"/></symbol>
+    <symbol id="i-underline" viewBox="0 0 16 16"><path d="M4.5 2.8V8a3.5 3.5 0 0 0 7 0V2.8M3.5 13.2h9"/></symbol>
+    <symbol id="i-strike" viewBox="0 0 16 16"><path d="M4.2 4.4C4.8 3.2 6.2 2.6 8 2.6s3.2.8 3.4 2.1M4.4 11.6c0 1.2 1.5 2.1 3.4 2.1s3.4-.8 3.4-2.2c0-1-.7-1.5-1.7-1.9M2.5 8h11"/></symbol>
+    <symbol id="i-sub" viewBox="0 0 16 16"><path d="M3 12.5 6.2 3.8h1L10.4 12.5M4.4 9.4h4.4"/><path d="M11.2 10.2h3.2v1.6c0 .9-.7 1.5-1.6 1.5s-1.6-.6-1.6-1.5"/></symbol>
+    <symbol id="i-super" viewBox="0 0 16 16"><path d="M2.5 13 5.7 4.3h1L10 13M3.9 9.9h4.4"/><path d="M11.2 3.2h3.2v1.5c0 .8-.7 1.4-1.6 1.4s-1.6-.6-1.6-1.4"/></symbol>
+    <symbol id="i-bullets" viewBox="0 0 16 16">
+      <circle cx="3" cy="4" r="1" class="fi"/>
+      <circle cx="3" cy="8" r="1" class="fi"/>
+      <circle cx="3" cy="12" r="1" class="fi"/>
+      <path d="M6 4h7.5M6 8h7.5M6 12h7.5"/>
+    </symbol>
+    <symbol id="i-numbers" viewBox="0 0 16 16"><path d="M2.4 5V3.2h1.8M2.4 8.2h1.8l-1.8 2.2h1.8M2.4 13.2h1.8M6 4h8M6 8h8M6 12h8"/></symbol>
+    <symbol id="i-multilevel" viewBox="0 0 16 16"><path d="M6.5 3.5h7M4.2 3.5h.01M8.5 8h5M6.5 8h.01M6.5 12.5h7M4.8 12.5h.01"/></symbol>
+    <symbol id="i-outdent" viewBox="0 0 16 16"><path d="M7 3.5h7M7 8h7M7 12.5h7M3 5.8l2.2 2.2L3 10.2"/></symbol>
+    <symbol id="i-indent" viewBox="0 0 16 16"><path d="M7 3.5h7M7 8h7M7 12.5h7M5.2 5.8 3 8l2.2 2.2"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 16 16"><path d="M4.5 3.2v9.6M2.8 10.6l1.7 2 1.7-2"/><path d="M8 4.2h6M8 8h4.2M8 11.8h2.4"/></symbol>
+    <symbol id="i-pilcrow" viewBox="0 0 16 16"><path d="M9.2 3.2h3.3M10.8 3.2v9.6M12.5 3.2v9.6M9.2 3.2A3.2 3.2 0 1 0 9.2 9.6"/></symbol>
+    <symbol id="i-align-left" viewBox="0 0 16 16"><path d="M2.5 3h11M2.5 6.3h7.5M2.5 9.7h11M2.5 13h7.5"/></symbol>
+    <symbol id="i-align-center" viewBox="0 0 16 16"><path d="M2.5 3h11M4.2 6.3h7.6M2.5 9.7h11M4.2 13h7.6"/></symbol>
+    <symbol id="i-align-right" viewBox="0 0 16 16"><path d="M2.5 3h11M6 6.3h7.5M2.5 9.7h11M6 13h7.5"/></symbol>
+    <symbol id="i-justify" viewBox="0 0 16 16"><path d="M2.5 3h11M2.5 6.3h11M2.5 9.7h11M2.5 13h11"/></symbol>
+    <symbol id="i-border" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M2.5 8h11M8 2.5v11"/></symbol>
+    <symbol id="i-find" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4"/><path d="M10 10l3.2 3.2"/></symbol>
+    <symbol id="i-replace" viewBox="0 0 16 16"><path d="M3.5 5.2h8M9.2 2.8 11.8 5.2 9.2 7.6M12.5 10.8h-8M6.8 8.4 4.2 10.8 6.8 13.2"/></symbol>
+    <symbol id="i-select" viewBox="0 0 16 16"><rect x="2.8" y="2.8" width="10.4" height="10.4" rx="1.5" stroke-dasharray="2.2 1.6"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 16 16"><rect x="6" y="2.2" width="4" height="7.2" rx="2"/><path d="M4.2 8a3.8 3.8 0 0 0 7.6 0M8 11.8v2M6.2 13.8h3.6"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 16 16"><path d="M8 2.2 3.2 4.4v4.2c0 2.8 2.1 4.6 4.8 5.4 2.7-.8 4.8-2.6 4.8-5.4V4.4z"/><path d="M5.8 8.1l1.6 1.6 2.8-3.2"/></symbol>
+    <symbol id="i-apps" viewBox="0 0 16 16">
+      <rect x="2.4" y="2.4" width="4.6" height="4.6" rx="1.1"/>
+      <rect x="9" y="2.4" width="4.6" height="4.6" rx="1.1"/>
+      <rect x="2.4" y="9" width="4.6" height="4.6" rx="1.1"/>
+      <rect x="9" y="9" width="4.6" height="4.6" rx="1.1"/>
+    </symbol>
+    <symbol id="i-table" viewBox="0 0 16 16"><rect x="2.5" y="2.8" width="11" height="10.4" rx="1.4"/><path d="M2.5 6.6h11M2.5 10.2h11M6.4 2.8v10.4M9.6 2.8v10.4"/></symbol>
+    <symbol id="i-image" viewBox="0 0 16 16"><rect x="2.4" y="3.2" width="11.2" height="9.6" rx="1.6"/><circle cx="5.6" cy="6.4" r="1.1"/><path d="M3 11.4 6.2 8.2l2.1 2.1L11 7.4l2.6 3.2"/></symbol>
+    <symbol id="i-shapes" viewBox="0 0 16 16"><rect x="2.4" y="2.4" width="6.2" height="6.2" rx="1.2"/><circle cx="11" cy="11" r="3.1"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 16 16"><path d="M2.5 13.2V2.8M2.5 13.2h11"/><rect x="4.4" y="8.6" width="2" height="4.6" rx="0.5" class="fi"/><rect x="7.4" y="6" width="2" height="7.2" rx="0.5" class="fi"/><rect x="10.4" y="3.6" width="2" height="9.6" rx="0.5" class="fi"/></symbol>
+    <symbol id="i-link" viewBox="0 0 16 16"><path d="M6.6 9.4 9.4 6.6M6.2 4.4l.9-1a2.7 2.7 0 0 1 3.8 3.8l-.9 1M9.8 11.6l-.9 1a2.7 2.7 0 0 1-3.8-3.8l.9-1"/></symbol>
+    <symbol id="i-header" viewBox="0 0 16 16"><rect x="2.6" y="2.4" width="10.8" height="11.2" rx="1.5"/><path d="M2.6 5.6h10.8M2.6 10.4h10.8"/></symbol>
+    <symbol id="i-page-num" viewBox="0 0 16 16"><rect x="4.2" y="2.2" width="7.6" height="11.6" rx="1.4"/><path d="M7.1 10.6V6.2L6 7"/></symbol>
+    <symbol id="i-pi" viewBox="0 0 16 16"><path d="M3.2 5.2h9.6M6.2 5.2v7.2c0 1.1-.6 1.8-1.6 1.8M10.4 5.2v8.6"/></symbol>
+    <symbol id="i-margins" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><rect x="5" y="5" width="6" height="6" rx="1" stroke-dasharray="1.6 1.2"/></symbol>
+    <symbol id="i-orient" viewBox="0 0 16 16"><rect x="3.4" y="2.4" width="9.2" height="11.2" rx="1.4"/><path d="M11.4 6.2 13.2 4.4 11.4 2.6"/></symbol>
+    <symbol id="i-break" viewBox="0 0 16 16"><rect x="2.5" y="2.4" width="11" height="4.6" rx="1.2"/><rect x="2.5" y="9" width="11" height="4.6" rx="1.2"/></symbol>
+    <symbol id="i-col1" viewBox="0 0 16 16"><rect x="2.6" y="2.5" width="10.8" height="11" rx="1.5"/></symbol>
+    <symbol id="i-col2" viewBox="0 0 16 16"><rect x="2.4" y="2.5" width="4.8" height="11" rx="1.2"/><rect x="8.8" y="2.5" width="4.8" height="11" rx="1.2"/></symbol>
+    <symbol id="i-col3" viewBox="0 0 16 16"><rect x="2.3" y="2.5" width="3.2" height="11" rx="1"/><rect x="6.4" y="2.5" width="3.2" height="11" rx="1"/><rect x="10.5" y="2.5" width="3.2" height="11" rx="1"/></symbol>
+    <symbol id="i-toc" viewBox="0 0 16 16"><path d="M2.8 3.4h10.4M2.8 6.6h7.4M2.8 9.8h7.4M2.8 13h7.4"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 16 16"><path d="M12.8 3.6A5.6 5.6 0 1 0 14 8.2"/><path d="M12.8 1.8v3.2h-3.2"/></symbol>
+    <symbol id="i-spell" viewBox="0 0 16 16"><circle cx="6.6" cy="9.4" r="4"/><path d="M5 9.4l1.2 1.3 2.1-2.6M10.6 2.8l1.9 1.9-1.9 1.9"/></symbol>
+    <symbol id="i-count" viewBox="0 0 16 16"><rect x="2.6" y="2.6" width="10.8" height="10.8" rx="1.6"/><path d="M5 6.2h6M5 8.4h6M5 10.6h3.6"/></symbol>
+    <symbol id="i-book" viewBox="0 0 16 16"><path d="M2.8 2.6h7.2l3.2 3.2v7.6H2.8z"/><path d="M10 2.6v3.2h3.2"/></symbol>
+    <symbol id="i-track" viewBox="0 0 16 16"><path d="M2.5 8h11M9.2 4.4 13 8l-3.8 3.6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6"/><path d="M5.4 8.2 7.2 10l3.4-3.8"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8.2" r="5.4"/><path d="M8 5.4v3l2.3 1.3"/></symbol>
+    <symbol id="i-print" viewBox="0 0 16 16"><rect x="4.2" y="1.8" width="7.6" height="12.4" rx="1.4"/><path d="M6.2 5h3.6M6.2 7.4h3.6M6.2 9.8h3.6"/></symbol>
+    <symbol id="i-read" viewBox="0 0 16 16"><path d="M8 3.2C5.6 2.2 3.2 2.7 2.3 3.6v8.8c.9-1 3.3-1.4 5.7-.4M8 3.2c2.4-1 4.8-.5 5.7.4v8.8c-.9-1-3.3-1.4-5.7-.4V3.2z"/></symbol>
+    <symbol id="i-focus" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.6"/><rect x="5.4" y="5.4" width="5.2" height="5.2" rx="1" class="fi"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 16 16"><path d="M8.2 2.4a5.8 5.8 0 1 0 5.4 8.4A4.8 4.8 0 0 1 8.2 2.4z" class="fi"/></symbol>
+    <symbol id="i-pane" viewBox="0 0 16 16"><rect x="2.4" y="2.4" width="6.8" height="11.2" rx="1.3"/><rect x="10.4" y="2.4" width="3.2" height="11.2" rx="1"/></symbol>
+    <symbol id="i-nav" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.6"/><path d="M6.6 2.5v11"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 16 16"><path d="M6.2 3.5H3.5V6.2M9.8 3.5h2.7V6.2M3.5 9.8v2.7H6.2M12.5 9.8v2.7H9.8"/></symbol>
+    <symbol id="i-checklist" viewBox="0 0 16 16"><path d="M2.3 4l1 1 1.9-2.1M2.3 8.5l1 1 1.9-2.1M2.3 13l1 1 1.9-2.1" class="ac"/><path d="M7.5 4h6.5M7.5 8.5h6.5M7.5 13h6.5"/></symbol>
+    <symbol id="i-ltr" viewBox="0 0 16 16"><path d="M9.2 3h3.6M10.9 3v9.5M12.6 3v9.5M9.2 3a3.2 3.2 0 1 0 0 6.4"/><path d="M2.6 5.8 4.8 8 2.6 10.2" class="ac"/></symbol>
+    <symbol id="i-rtl" viewBox="0 0 16 16"><path d="M9.2 3h3.6M10.9 3v9.5M12.6 3v9.5M9.2 3a3.2 3.2 0 1 0 0 6.4"/><path d="M5.6 5.8 3.4 8l2.2 2.2" class="ac"/></symbol>
+    <symbol id="i-linespace" viewBox="0 0 16 16"><path d="M7.5 3.5h7M7.5 8h7M7.5 12.5h7"/><path d="M3.8 3v10M2.2 5l1.6-2L5.4 5M2.2 11l1.6 2 1.6-2" class="ac"/></symbol>
+    <symbol id="i-parindent" viewBox="0 0 16 16"><path d="M7 3.5h7M7 8h7M7 12.5h7"/><path d="M2 5.6 4.4 8 2 10.4" class="ac"/></symbol>
+    <symbol id="i-borders" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 8h.01M8 8h.01M10.5 8h.01"/></symbol>
+    <symbol id="i-shade" viewBox="0 0 16 16"><path d="M3.2 8.2 7.4 3.6l4.2 4.2-4.2 4.4z"/><path d="M7.4 3.6 6.2 2.4" /><path d="M12.8 9.4c.9 1.1 1.3 1.8 1.3 2.3a1.3 1.3 0 0 1-2.6 0c0-.5.4-1.2 1.3-2.3z" class="ac"/></symbol>
+    <symbol id="i-highlight" viewBox="0 0 16 16"><path d="M9.6 2.4l4 4-6.2 6.2H4.3V9.5z"/><path d="M8.2 3.8l4 4"/></symbol>
+    <symbol id="i-fontcolor" viewBox="0 0 16 16"><path d="M3.3 12 8 2.8 12.7 12M5.2 8.6h5.6"/></symbol>
+    <symbol id="i-pagebreak" viewBox="0 0 16 16"><path d="M4 6.2V2.5h8v3.7M4 9.8v3.7h8V9.8"/><path d="M1.5 8h13" class="ac"/></symbol>
+    <symbol id="i-drawing" viewBox="0 0 16 16"><path d="M3 13l.8-3.2L11 2.6l2.4 2.4-7.2 7.2z"/><path d="M9.6 4l2.4 2.4"/></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 16 16"><path d="M4.5 2.5h7v11L8 10.8l-3.5 2.7z"/></symbol>
+    <symbol id="i-video" viewBox="0 0 16 16"><rect x="2" y="4" width="8.5" height="8" rx="1.6"/><path d="M10.5 7.6 14 5.6v4.8l-3.5-2z"/></symbol>
+    <symbol id="i-commentplus" viewBox="0 0 16 16"><path d="M2.5 5.5h8a1 1 0 0 1 1 1v4.5a1 1 0 0 1-1 1H6.5L4 14v-2H2.5a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1z"/><path d="M12.5 1.8v4.4M10.3 4h4.4" stroke="#3ecf6b"/></symbol>
+    <symbol id="i-omega" viewBox="0 0 16 16"><path d="M3 13.2h3.2v-1.5A4.6 4.6 0 1 1 9.8 11.7v1.5H13"/></symbol>
+    <symbol id="i-emoji" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6"/><path d="M5.7 9.6c.5.9 1.3 1.4 2.3 1.4s1.8-.5 2.3-1.4M6 6.6h.01M10 6.6h.01"/></symbol>
+    <symbol id="i-size" viewBox="0 0 16 16"><rect x="3.6" y="2" width="8.8" height="12" rx="1.4"/><path d="M1.3 5.5v5M14.7 5.5v5" class="ac"/></symbol>
+    <symbol id="i-linenums" viewBox="0 0 16 16"><path d="M7 4h7M7 8h7M7 12h7"/><path d="M2.6 3.6l.9-.6v3M2.4 9.8h1.8L2.4 12h1.9"/></symbol>
+    <symbol id="i-pageborders" viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1.4"/><rect x="5.2" y="4.2" width="5.6" height="7.6" rx="0.6" stroke-dasharray="1.4 1.2"/></symbol>
+    <symbol id="i-pagecolor" viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1.4"/><path d="M8 5.2c1.5 1.8 2.2 2.9 2.2 3.7a2.2 2.2 0 0 1-4.4 0c0-.8.7-1.9 2.2-3.7z" class="ac"/></symbol>
+    <symbol id="i-footnote" viewBox="0 0 16 16"><path d="M2.3 13l3.1-8h1l3.1 8M3.6 10.2h4.6"/><path d="M11.4 3.4v3.6M9.6 5.2h3.6" class="ac"/></symbol>
+    <symbol id="i-insights" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 13.6 13.6"/><path d="M7 5.2v.01M7 7v2" class="ac"/></symbol>
+    <symbol id="i-citations" viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1.4"/><path d="M5.5 7.2h2v2.3h-2zM9 7.2h2v2.3H9zM5.5 9.5c0 1-.4 1.5-1 1.8M9 9.5c0 1-.4 1.5-1 1.8"/></symbol>
+    <symbol id="i-reading" viewBox="0 0 16 16"><rect x="1.8" y="3" width="5.8" height="10" rx="1.2"/><rect x="8.4" y="3" width="5.8" height="10" rx="1.2"/></symbol>
+    <symbol id="i-immersive" viewBox="0 0 16 16"><rect x="1.8" y="3" width="5" height="10" rx="1.2"/><rect x="7.6" y="3" width="4" height="10" rx="1.2"/><path d="M13.2 6.4c.9 1 .9 2.2 0 3.2" class="ac"/></symbol>
+    <symbol id="i-pct" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="2" class="ac"/><text x="8" y="10.4" font-size="6" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">100</text></symbol>
+    <symbol id="i-ruler" viewBox="0 0 16 16"><rect x="1.8" y="5.5" width="12.4" height="5" rx="1"/><path d="M4.6 5.5v2M7 5.5v2.6M9.4 5.5v2M11.8 5.5v2.6"/></symbol>
+    <symbol id="i-navpane" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.6" class="ac"/><path d="M6.6 2.5v11"/></symbol>
+    <symbol id="i-darkmode" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z" class="fi"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.6"/><path d="M8 1.8v1.7M8 12.5v1.7M1.8 8h1.7M12.5 8h1.7M3.6 3.6l1.2 1.2M11.2 11.2l1.2 1.2M12.4 3.6l-1.2 1.2M4.8 11.2l-1.2 1.2"/></symbol>
+    <symbol id="i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.8"/><path d="M6.2 6.4a1.9 1.9 0 1 1 2.6 1.7C8.2 8.4 8 8.8 8 9.5M8 11.5v.01"/></symbol>
+    <symbol id="i-support" viewBox="0 0 16 16"><path d="M3 9.5V8a5 5 0 0 1 10 0v1.5"/><rect x="2.2" y="8.8" width="2.6" height="4" rx="1.1"/><rect x="11.2" y="8.8" width="2.6" height="4" rx="1.1"/><path d="M12.6 12.8c0 1-1.2 1.6-3 1.6"/></symbol>
+    <symbol id="i-feedback" viewBox="0 0 16 16"><path d="M2.4 3h7.2v5.2H5.4L3.4 10V8.2h-1z"/><path d="M11.4 6.6h2.2v4.6h-1v1.8l-1.9-1.8H8.4V9.8"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 16 16"><rect x="1.8" y="4" width="12.4" height="8" rx="1.6"/><path d="M4.6 7h.01M7 7h.01M9.4 7h.01M11.8 7h.01M5.2 9.8h5.6"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 16 16"><path d="M4.4 11V7.6a3.6 3.6 0 0 1 7.2 0V11l1.1 1.3H3.3z"/><path d="M6.8 14h2.4"/></symbol>
+    <symbol id="i-editor" viewBox="0 0 16 16"><path d="M2.4 13.6h4.2M3.6 11.2l.7-2.8 6.4-6.4 2.1 2.1-6.4 6.4z"/></symbol>
+  </svg>
+
+  <header class="topbar">
+    <div class="topbar-left">
+    <button class="icon-btn" type="button" title="App launcher">
+      <svg class="ic"><use href="#i-grid"/></svg>
+    </button>
+    <div class="wordmark" aria-hidden="true">W</div>
+    <div class="docname">
+      <input id="doc-name" value="Document1" aria-label="Document name">
+    </div>
+    </div>
+    <div class="search">
+      <div class="search-box" id="search-box" role="button" tabindex="0" style="cursor:pointer">
+        <svg class="ic"><use href="#i-search"/></svg>
+        <span>Search for tools, help, and more (Alt + Q)</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+    <button class="icon-btn" type="button" data-action="toggle-dark" title="Settings">
+      <svg class="ic"><use href="#i-gear"/></svg>
+    </button>
+    <button class="avatar" type="button" title="Account" id="avatar">C</button>
+    </div>
+  </header>
+
+  <nav class="tabrow">
+    <div class="tabs">
+      <button class="tab file" type="button" data-action="toggle-file-menu">File</button>
+      <button class="tab on" type="button" data-tab="home">Home</button>
+      <button class="tab" type="button" data-tab="insert">Insert</button>
+      <button class="tab" type="button" data-tab="layout">Layout</button>
+      <button class="tab" type="button" data-tab="refs">References</button>
+      <button class="tab" type="button" data-tab="review">Review</button>
+      <button class="tab" type="button" data-tab="view">View</button>
+      <button class="tab" type="button" data-tab="help">Help</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="pill" type="button" data-action="toggle-comments">
+      <svg class="ic"><use href="#i-comment"/></svg> Comments
+    </button>
+    <button class="pill" type="button" id="catchup-pill">
+      <svg class="ic"><use href="#i-catchup"/></svg> Catch up
+    </button>
+    <button class="pill" type="button" id="mode-pill">
+      <span id="mode-label">Editing</span> <svg class="ic ic-sm"><use href="#i-chevron"/></svg>
+    </button>
+    <button class="pill primary" type="button" id="share-pill">
+      <svg class="ic"><use href="#i-share"/></svg> Share
+    </button>
+
+    <div class="menu" id="file-menu" role="menu">
+      <button class="menu-item" type="button" data-action="new-doc">
+        <svg class="ic"><use href="#i-file"/></svg> New
+      </button>
+      <button class="menu-item" type="button" data-action="close-file-menu">
+        <svg class="ic"><use href="#i-folder"/></svg> Open
+      </button>
+      <div class="menu-label">Save As</div>
+      <button class="menu-item" type="button" data-action="export" data-format="docx">
+        <svg class="ic"><use href="#i-file"/></svg> Word Document (.doc)
+      </button>
+      <button class="menu-item" type="button" data-action="export" data-format="pdf">
+        <svg class="ic"><use href="#i-file"/></svg> PDF
+      </button>
+      <button class="menu-item" type="button" data-action="export" data-format="html">
+        <svg class="ic"><use href="#i-code"/></svg> Web Page (.html)
+      </button>
+      <button class="menu-item" type="button" data-action="export" data-format="txt">
+        <svg class="ic"><use href="#i-lines"/></svg> Plain Text (.txt)
+      </button>
+    </div>
+  </nav>
+
+  <!-- Home ribbon -->
+  <section class="ribbon on" id="ribbon-home">
+    <div class="group">
+      <div class="gbody">
+        <div class="col"><button class="rbtn" type="button" data-exec="undo" title="Undo"><svg class="ic "><use href="#i-undo"/></svg></button><button class="rbtn" type="button" data-exec="redo" title="Redo"><svg class="ic "><use href="#i-redo"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Undo</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-exec="paste" title="Paste"><svg class="ic ic-lg "><use href="#i-paste"/></svg><span class="lbl">Paste</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><div class="col tight"><button class="rbtn" type="button" data-exec="cut" title="Cut"><svg class="ic "><use href="#i-cut"/></svg></button><button class="rbtn" type="button" data-exec="copy" title="Copy"><svg class="ic "><use href="#i-copy"/></svg></button><button class="rbtn" type="button"  title="Format Painter"><svg class="ic "><use href="#i-painter"/></svg></button></div></div>
+      </div>
+      
+      <span class="caption">Clipboard</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><div class="selwrap"><select class="select font" aria-label="Font" title="Font" data-exec-value="fontName"><option selected>Aptos (Body)</option><option>Calibri</option><option>Cambria</option><option>Georgia</option><option>Arial</option><option>Times New Roman</option><option>Courier New</option></select><svg class="ic chev"><use href="#i-chevron"/></svg></div><div class="size-box"><input id="font-size" list="font-sizes" value="12" aria-label="Font size" title="Font Size"><datalist id="font-sizes"><option value="8"><option value="9"><option value="10"><option value="11"><option value="12"><option value="14"><option value="16"><option value="18"><option value="20"><option value="24"><option value="28"><option value="36"><option value="48"><option value="72"></datalist><svg class="ic chev"><use href="#i-chevron"/></svg></div><button class="rbtn" type="button" data-action="grow-font" title="Increase Font Size"><svg class="ic "><use href="#i-grow"/></svg></button><button class="rbtn" type="button" data-action="shrink-font" title="Decrease Font Size"><svg class="ic "><use href="#i-shrink"/></svg></button><button class="rbtn" type="button" data-exec="removeFormat" title="Clear Formatting"><svg class="ic "><use href="#i-clear"/></svg></button></div>
+        <div class="row"><button class="rbtn" type="button" data-exec="bold" data-state="bold" title="Bold (Ctrl+B)"><svg class="ic "><use href="#i-bold"/></svg></button><button class="rbtn" type="button" data-exec="italic" data-state="italic" title="Italic (Ctrl+I)"><svg class="ic "><use href="#i-italic"/></svg></button><button class="rbtn" type="button" data-exec="underline" data-state="underline" title="Underline (Ctrl+U)"><svg class="ic "><use href="#i-underline"/></svg></button><button class="rbtn" type="button" data-exec="strikeThrough" data-state="strikeThrough" title="Strikethrough"><svg class="ic "><use href="#i-strike"/></svg></button><button class="rbtn" type="button" data-exec="subscript" title="Subscript"><svg class="ic "><use href="#i-sub"/></svg></button><button class="rbtn" type="button" data-exec="superscript" title="Superscript"><svg class="ic "><use href="#i-super"/></svg></button><button class="rbtn" type="button" title="Change Case">Ab <svg class="ic chev"><use href="#i-chevron"/></svg></button><label class="rbtn colorbtn" title="Text Highlight Color"><svg class="ic "><use href="#i-highlight"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg><span class="bar" style="background:#fdf2a7"></span><input type="color" value="#fdf2a7" data-exec-value="hiliteColor"></label><label class="rbtn colorbtn" title="Font Color"><svg class="ic "><use href="#i-fontcolor"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg><span class="bar" style="background:#e5252a"></span><input type="color" value="#e5252a" data-exec-value="foreColor"></label></div>
+      </div>
+      <button class="launcher" type="button" title="Font options"><svg class="ic ic-sm"><use href="#i-expand"/></svg></button>
+      <span class="caption">Font</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn" type="button" data-exec="insertUnorderedList" title="Bullets"><svg class="ic "><use href="#i-bullets"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn" type="button" data-exec="insertOrderedList" title="Numbering"><svg class="ic "><use href="#i-numbers"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn" type="button"  title="Multilevel List"><svg class="ic "><use href="#i-multilevel"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn" type="button"  title="Checklist"><svg class="ic "><use href="#i-checklist"/></svg></button><button class="rbtn" type="button" data-exec="outdent" title="Decrease Indent"><svg class="ic "><use href="#i-indent"/></svg></button><button class="rbtn" type="button" data-exec="indent" title="Increase Indent"><svg class="ic "><use href="#i-outdent"/></svg></button><button class="rbtn on" type="button"  title="Left-to-Right"><svg class="ic "><use href="#i-ltr"/></svg></button><button class="rbtn" type="button"  title="Right-to-Left"><svg class="ic "><use href="#i-rtl"/></svg></button><button class="rbtn" type="button"  title="Show/Hide ¶"><svg class="ic "><use href="#i-pilcrow"/></svg></button></div>
+        <div class="row"><button class="rbtn" type="button" data-exec="justifyLeft" data-state="justifyLeft" title="Align Left (Ctrl+L)"><svg class="ic "><use href="#i-align-left"/></svg></button><button class="rbtn" type="button" data-exec="justifyCenter" data-state="justifyCenter" title="Center (Ctrl+E)"><svg class="ic "><use href="#i-align-center"/></svg></button><button class="rbtn" type="button" data-exec="justifyRight" data-state="justifyRight" title="Align Right (Ctrl+R)"><svg class="ic "><use href="#i-align-right"/></svg></button><button class="rbtn" type="button" data-exec="justifyFull" data-state="justifyFull" title="Justify (Ctrl+J)"><svg class="ic "><use href="#i-justify"/></svg></button><label class="rbtn selbtn" title="Line and Paragraph Spacing"><svg class="ic "><use href="#i-linespace"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg><select aria-label="Line spacing" data-action-change="line-height"><option value="1.15">1.0</option><option value="1.5" selected>1.5</option><option value="2">2.0</option></select></label><button class="rbtn" type="button"  title="Paragraph Spacing"><svg class="ic "><use href="#i-parindent"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn" type="button"  title="Borders"><svg class="ic "><use href="#i-borders"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><label class="rbtn colorbtn" title="Shading"><svg class="ic "><use href="#i-shade"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg><span class="bar" style="background:#ffffff"></span><input type="color" value="#ffffff" data-action-change="shade"></label></div>
+      </div>
+      <button class="launcher" type="button" title="Paragraph options"><svg class="ic ic-sm"><use href="#i-expand"/></svg></button>
+      <span class="caption">Paragraph</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="style-row">
+          <button class="style-card" type="button" data-style="p" title="Normal"><b>Normal</b><small>Aptos, 12</small></button>
+          <button class="style-more" type="button" data-action="toggle-styles" title="More styles"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
+        </div>
+        <div class="style-pop" id="style-pop">
+          <button type="button" data-style="p">Normal</button>
+          <button type="button" class="h1" data-style="h1">Heading 1</button>
+          <button type="button" class="h2" data-style="h2">Heading 2</button>
+          <button type="button" class="h3" data-style="h3">Heading 3</button>
+        </div>
+      </div>
+      <button class="launcher" type="button" title="Styles options"><svg class="ic ic-sm"><use href="#i-expand"/></svg></button>
+      <span class="caption">Styles</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="edit-list"><button class="rbtn line" type="button" data-action="find" title="Find"><svg class="ic ic-md "><use href="#i-find"/></svg><span>Find</span></button><button class="rbtn line" type="button" data-action="replace" title="Replace"><svg class="ic ic-md "><use href="#i-replace"/></svg><span>Replace</span></button><button class="rbtn line" type="button" data-exec="selectAll" title="Select"><svg class="ic ic-md "><use href="#i-select"/></svg><span>Select</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Editing</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button"  title="Dictate"><svg class="ic ic-lg blue"><use href="#i-mic"/></svg><span class="lbl">Dictate</span></button></div>
+      </div>
+      
+      <span class="caption">Voice</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button"  title="Editor"><svg class="ic ic-lg blue"><use href="#i-editor"/></svg><span class="lbl">Editor</span></button></div>
+      </div>
+      
+      <span class="caption">Proofing</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button"  title="Add-ins"><svg class="ic ic-lg red"><use href="#i-apps"/></svg><span class="lbl">Add-ins</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Add-ins</span>
+    </div>
+    <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
+  </section>
+
+  <!-- Insert ribbon -->
+  <section class="ribbon" id="ribbon-insert">
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="insert-break" title="Page Break"><svg class="ic ic-lg "><use href="#i-pagebreak"/></svg><span class="lbl">Page<br>Break</span></button></div>
+      </div>
+      
+      <span class="caption">Pages</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="insert-table" title="Table"><svg class="ic ic-lg "><use href="#i-table"/></svg><span class="lbl">Table</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Tables</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="pick-image" title="Picture"><svg class="ic ic-lg "><use href="#i-image"/></svg><span class="lbl">Picture</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><input type="file" id="image-input" accept="image/*" hidden><button class="rbtn big" type="button" data-action="insert-shape" title="Drawing"><svg class="ic ic-lg "><use href="#i-drawing"/></svg><span class="lbl">Drawing</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Illustrations</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="insert-link" title="Link"><svg class="ic ic-lg "><use href="#i-link"/></svg><span class="lbl">Link</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Links</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="insert-toc" title="Table of Contents"><svg class="ic ic-lg "><use href="#i-toc"/></svg><span class="lbl">Table of<br>Contents</span></button></div>
+      </div>
+      
+      <span class="caption">Table of Contents</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button"  title="Bookmarks"><svg class="ic ic-lg "><use href="#i-bookmark"/></svg><span class="lbl">Bookmarks</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption"></span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button"  title="Online Video"><svg class="ic ic-lg blue"><use href="#i-video"/></svg><span class="lbl">Online<br>Video</span></button></div>
+      </div>
+      
+      <span class="caption">Media</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="add-comment" title="New Comment"><svg class="ic ic-lg "><use href="#i-commentplus"/></svg><span class="lbl">New<br>Comment</span></button></div>
+      </div>
+      
+      <span class="caption">Comments</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="toggle-header-footer" title="Header &amp; Footer"><svg class="ic ic-lg "><use href="#i-header"/></svg><span class="lbl">Header &amp;<br>Footer</span></button><button class="rbtn big" type="button" data-action="insert-page-number" title="Page Numbers"><svg class="ic ic-lg "><use href="#i-page-num"/></svg><span class="lbl">Page<br>Numbers <svg class="ic chev"><use href="#i-chevron"/></svg></span></button></div>
+      </div>
+      
+      <span class="caption">Header &amp; Footer</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="insert-equation" title="Equation"><svg class="ic ic-lg "><use href="#i-pi"/></svg><span class="lbl">Equation</span></button><button class="rbtn big" type="button" data-action="insert-symbol" title="Symbol"><svg class="ic ic-lg "><use href="#i-omega"/></svg><span class="lbl">Symbol</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Symbols</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="insert-emoji" title="Emoji"><svg class="ic ic-lg "><use href="#i-emoji"/></svg><span class="lbl">Emoji</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Emojis</span>
+    </div>
+    <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
+  </section>
+
+  <!-- Layout ribbon -->
+  <section class="ribbon" id="ribbon-layout">
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="set-margins" title="Margins"><svg class="ic ic-lg "><use href="#i-margins"/></svg><span class="lbl">Margins</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button" data-action="toggle-orientation" title="Orientation"><svg class="ic ic-lg "><use href="#i-orient"/></svg><span class="lbl">Orientation</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button"  title="Size"><svg class="ic ic-lg "><use href="#i-size"/></svg><span class="lbl">Size</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button"  disabled title="Columns"><svg class="ic ic-lg "><use href="#i-col2"/></svg><span class="lbl">Columns</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button" data-action="insert-break" title="Breaks"><svg class="ic ic-lg "><use href="#i-break"/></svg><span class="lbl">Breaks</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button"  disabled title="Line Numbers"><svg class="ic ic-lg "><use href="#i-linenums"/></svg><span class="lbl">Line<br>Numbers</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Page Setup</span>
+    </div>
+    <div class="group">
+      <div class="gbody fields">
+        <div class="fgroup"><div class="ftitle">Indent</div><div class="frow"><svg class="ic ic-md"><use href="#i-parindent"/></svg><span>Left:</span><div class="numfield"><input value="0&quot;" data-field="indent-left" data-step="0.1" aria-label="Left:"><div class="nstep"><button type="button" data-action="step-field" data-delta="1" title="Increase"><svg class="ic ic-sm"><use href="#i-chevron-up"/></svg></button><button type="button" data-action="step-field" data-delta="-1" title="Decrease"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button></div></div></div><div class="frow"><svg class="ic ic-md"><use href="#i-outdent"/></svg><span>Right:</span><div class="numfield"><input value="0&quot;" data-field="indent-right" data-step="0.1" aria-label="Right:"><div class="nstep"><button type="button" data-action="step-field" data-delta="1" title="Increase"><svg class="ic ic-sm"><use href="#i-chevron-up"/></svg></button><button type="button" data-action="step-field" data-delta="-1" title="Decrease"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button></div></div></div></div>
+        <div class="fgroup"><div class="ftitle">Spacing</div><div class="frow"><svg class="ic ic-md"><use href="#i-linespace"/></svg><span>Before:</span><div class="numfield"><input value="0 pt" data-field="space-before" data-step="1" aria-label="Before:"><div class="nstep"><button type="button" data-action="step-field" data-delta="1" title="Increase"><svg class="ic ic-sm"><use href="#i-chevron-up"/></svg></button><button type="button" data-action="step-field" data-delta="-1" title="Decrease"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button></div></div></div><div class="frow"><svg class="ic ic-md"><use href="#i-linespace"/></svg><span>After:</span><div class="numfield"><input value="8 pt" data-field="space-after" data-step="1" aria-label="After:"><div class="nstep"><button type="button" data-action="step-field" data-delta="1" title="Increase"><svg class="ic ic-sm"><use href="#i-chevron-up"/></svg></button><button type="button" data-action="step-field" data-delta="-1" title="Decrease"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button></div></div></div></div>
+      </div>
+      <button class="launcher" type="button" title="Paragraph options"><svg class="ic ic-sm"><use href="#i-expand"/></svg></button>
+      <span class="caption">Paragraph</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="page-border" title="Page Borders"><svg class="ic ic-lg "><use href="#i-pageborders"/></svg><span class="lbl">Page<br>Borders</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button" data-action="page-color" title="Page Color"><svg class="ic ic-lg "><use href="#i-pagecolor"/></svg><span class="lbl">Page<br>Color</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><input type="color" id="page-color-input" value="#ffffff" hidden></div>
+      </div>
+      
+      <span class="caption">Page Background</span>
+    </div>
+    <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
+  </section>
+
+  <!-- References ribbon -->
+  <section class="ribbon" id="ribbon-refs">
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="insert-toc" title="Insert Table of Contents"><svg class="ic ic-lg "><use href="#i-toc"/></svg><span class="lbl">Insert Table of<br>Contents</span></button><div class="col"><button class="rbtn line" type="button"  title="Update Table of Contents"><svg class="ic ic-md "><use href="#i-refresh"/></svg><span>Update Table of Contents</span></button><button class="rbtn line" type="button"  title="Remove Table of Contents"><svg class="ic ic-md "><use href="#i-clear"/></svg><span>Remove Table of Contents</span></button></div></div>
+      </div>
+      
+      <span class="caption">Table of Contents</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="insert-note" data-kind="Footnote" title="Insert Footnote"><svg class="ic ic-lg "><use href="#i-footnote"/></svg><span class="lbl">Insert<br>Footnote</span></button><div class="col"><button class="rbtn line" type="button" data-action="insert-note" data-kind="Endnote" title="Insert Endnote"><svg class="ic ic-md "><use href="#i-file"/></svg><span>Insert Endnote</span></button><button class="rbtn line" type="button"  title="Show Footnotes"><svg class="ic ic-md "><use href="#i-footnote"/></svg><span>Show Footnotes</span></button><button class="rbtn line" type="button"  title="Show Endnotes"><svg class="ic ic-md "><use href="#i-footnote"/></svg><span>Show Endnotes</span></button></div></div>
+      </div>
+      
+      <span class="caption">Footnotes</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="find" title="Search"><svg class="ic ic-lg blue"><use href="#i-insights"/></svg><span class="lbl">Search</span></button></div>
+      </div>
+      
+      <span class="caption">Insights</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button"  title="Citations"><svg class="ic ic-lg red"><use href="#i-citations"/></svg><span class="lbl">Citations</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+      </div>
+      
+      <span class="caption">Citation &amp; Bibliography</span>
+    </div>
+    <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
+  </section>
+
+  <!-- Review ribbon -->
+  <section class="ribbon" id="ribbon-review">
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" id="spell-btn" data-action="toggle-spellcheck" title="Spelling &amp; Grammar"><svg class="ic ic-lg "><use href="#i-spell"/></svg><span class="lbl">Spelling &amp;<br>Grammar</span></button><button class="rbtn big" type="button" data-action="word-count" title="Word Count"><svg class="ic ic-lg "><use href="#i-count"/></svg><span class="lbl">Word<br>Count</span></button><button class="rbtn big" type="button" data-action="thesaurus" title="Thesaurus"><svg class="ic ic-lg "><use href="#i-book"/></svg><span class="lbl">Thesaurus</span></button></div>
+      </div>
+      
+      <span class="caption">Proofing</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="add-comment" title="New Comment"><svg class="ic ic-lg "><use href="#i-commentplus"/></svg><span class="lbl">New<br>Comment</span></button><button class="rbtn big" type="button" data-action="show-comments" title="Show Comments"><svg class="ic ic-lg "><use href="#i-comment"/></svg><span class="lbl">Show<br>Comments</span></button></div>
+      </div>
+      
+      <span class="caption">Comments</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button"  disabled title="Track Changes"><svg class="ic ic-lg "><use href="#i-track"/></svg><span class="lbl">Track<br>Changes</span></button><button class="rbtn big" type="button"  disabled title="Accept"><svg class="ic ic-lg "><use href="#i-check"/></svg><span class="lbl">Accept</span></button></div>
+      </div>
+      
+      <span class="caption">Tracking</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="save-version" title="Save Version"><svg class="ic ic-lg "><use href="#i-file"/></svg><span class="lbl">Save<br>Version</span></button><button class="rbtn big" type="button" data-action="restore-version" title="Version History"><svg class="ic ic-lg "><use href="#i-clock"/></svg><span class="lbl">Version<br>History</span></button></div>
+      </div>
+      
+      <span class="caption">Version History</span>
+    </div>
+    <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
+  </section>
+
+  <!-- View ribbon -->
+  <section class="ribbon" id="ribbon-view">
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" id="view-print" data-action="set-mode" data-mode="print" title="Separate Pages"><svg class="ic ic-lg "><use href="#i-file"/></svg><span class="lbl">Separate<br>Pages</span></button><button class="rbtn big" type="button" id="view-read" data-action="set-mode" data-mode="read" title="Reading View"><svg class="ic ic-lg "><use href="#i-reading"/></svg><span class="lbl">Reading<br>View</span></button><button class="rbtn big" type="button" id="view-focus" data-action="set-mode" data-mode="focus" title="Immersive Reader"><svg class="ic ic-lg "><use href="#i-immersive"/></svg><span class="lbl">Immersive<br>Reader</span></button></div>
+      </div>
+      
+      <span class="caption">Document Views</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><div class="zoomcol"><span class="zl"><svg class="ic ic-md"><use href="#i-find"/></svg> Zoom:</span><div class="selwrap"><select class="select zoomsel" aria-label="Zoom" data-action-change="zoom"><option value="0.5">50%</option><option value="0.75">75%</option><option value="1" selected>100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select><svg class="ic chev"><use href="#i-chevron"/></svg></div></div><button class="rbtn big" type="button" data-action="zoom-100" title="100%"><svg class="ic ic-lg "><use href="#i-pct"/></svg><span class="lbl">100%</span></button></div>
+      </div>
+      
+      <span class="caption">Zoom</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="toggle-ruler" title="Ruler"><svg class="ic ic-lg "><use href="#i-ruler"/></svg><span class="lbl">Ruler</span></button><button class="rbtn big" type="button"  title="Navigation"><svg class="ic ic-lg "><use href="#i-navpane"/></svg><span class="lbl">Navigation</span></button><button class="rbtn big" type="button" data-action="toggle-header-footer" title="Header &amp; Footer"><svg class="ic ic-lg blue"><use href="#i-header"/></svg><span class="lbl">Header &amp;<br>Footer</span></button><button class="rbtn big" type="button"  disabled title="Footnotes"><svg class="ic ic-lg "><use href="#i-footnote"/></svg><span class="lbl">Footnotes</span></button><button class="rbtn big" type="button"  disabled title="Endnotes"><svg class="ic ic-lg "><use href="#i-file"/></svg><span class="lbl">Endnotes</span></button></div>
+      </div>
+      
+      <span class="caption">Show</span>
+    </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" id="view-dark" data-action="toggle-dark" title="Dark Mode"><svg class="ic ic-lg "><use href="#i-darkmode"/></svg><span class="lbl">Dark<br>Mode</span></button><button class="rbtn big" type="button" data-action="switch-bg" title="Switch Background"><svg class="ic ic-lg "><use href="#i-sun"/></svg><span class="lbl">Switch<br>Background</span></button></div>
+      </div>
+      
+      <span class="caption">Dark Mode</span>
+    </div>
+    <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
+  </section>
+
+  <!-- Help ribbon -->
+  <section class="ribbon" id="ribbon-help">
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="help" title="Help"><svg class="ic ic-lg "><use href="#i-help"/></svg><span class="lbl">Help</span></button><button class="rbtn big" type="button" data-action="support" title="Contact Support"><svg class="ic ic-lg "><use href="#i-support"/></svg><span class="lbl">Contact<br>Support</span></button><button class="rbtn big" type="button" data-action="feedback" title="Feedback"><svg class="ic ic-lg "><use href="#i-feedback"/></svg><span class="lbl">Feedback</span></button><button class="rbtn big" type="button" data-action="shortcuts" title="Keyboard Shortcuts"><svg class="ic ic-lg "><use href="#i-keyboard"/></svg><span class="lbl">Keyboard<br>Shortcuts</span></button><button class="rbtn big" type="button" data-action="whats-new" title="What&amp;#39;s New"><svg class="ic ic-lg "><use href="#i-bell"/></svg><span class="lbl">What&#39;s<br>New</span></button></div>
+      </div>
+      
+      <span class="caption">Help</span>
+    </div>
+    <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
+  </section>
+
+  <div class="ruler" id="ruler"></div>
+
+  <div class="workspace">
+    <div class="nav-toggle">
+      <button type="button" title="Navigation pane" data-action="toggle-comments">
+        <svg class="ic"><use href="#i-nav"/></svg>
+      </button>
+    </div>
+
+    <div class="work-main">
+      <article class="sheet" id="sheet">
+        <div id="page-bgs" aria-hidden="true"></div>
+        <div class="header" contenteditable="true">Header — <span>type here</span></div>
+        <div id="page" contenteditable="true" spellcheck="true" aria-label="Document">
+          <p><br></p>
+        </div>
+        <div class="footer" contenteditable="true">Footer text</div>
+      </article>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">Comments</div>
+      <div id="comments-list"></div>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <span id="page-label">Page 1 of 1</span>
+    <span id="word-label">0 words</span>
+    <span>English (U.S.)</span>
+    <button class="ghost" type="button" data-action="toggle-spellcheck">
+      <svg class="ic ic-md"><use href="#i-check"/></svg>
+      Editor Suggestions: Showing
+    </button>
+    <span class="spacer"></span>
+    <div class="view-btns">
+      <button type="button" data-action="set-mode" data-mode="print" title="Print Layout">
+        <svg class="ic"><use href="#i-print"/></svg>
+      </button>
+      <button type="button" data-action="set-mode" data-mode="read" title="Read Mode">
+        <svg class="ic"><use href="#i-read"/></svg>
+      </button>
+      <button type="button" data-action="set-mode" data-mode="focus" title="Focus">
+        <svg class="ic"><use href="#i-focus"/></svg>
+      </button>
+    </div>
+    <button class="zoom-btn" type="button" data-action="nudge-zoom" data-delta="-10">−</button>
+    <input type="range" id="zoom-range" min="50" max="200" value="100">
+    <button class="zoom-btn" type="button" data-action="nudge-zoom" data-delta="10">+</button>
+    <span class="zoom-label" id="zoom-label">100%</span>
+    <button class="ghost" type="button">Give Feedback to OpenWriter</button>
+  </footer>
+
+  <input type="file" id="open-input" accept=".html,.htm,.txt,.md" hidden>
+  <div class="selpop" id="sel-pop" role="toolbar" aria-label="Edit selected text">
+    <select class="sp-font" id="sp-font" aria-label="Font" title="Font"><option>Aptos</option><option>Calibri</option><option>Cambria</option><option>Georgia</option><option>Arial</option><option>Times New Roman</option><option>Courier New</option></select>
+    <input class="sp-size" id="sp-size" type="text" list="font-sizes" value="12" aria-label="Font size" title="Font size">
+    <span class="sp-sep"></span>
+    <button class="sp-btn" type="button" data-sp="bold" title="Bold"><svg class="ic"><use href="#i-bold"/></svg></button>
+    <button class="sp-btn" type="button" data-sp="italic" title="Italic"><svg class="ic"><use href="#i-italic"/></svg></button>
+    <button class="sp-btn" type="button" data-sp="underline" title="Underline"><svg class="ic"><use href="#i-underline"/></svg></button>
+    <button class="sp-btn" type="button" data-sp="strikeThrough" title="Strikethrough"><svg class="ic"><use href="#i-strike"/></svg></button>
+    <label class="sp-btn" title="Highlight"><svg class="ic"><use href="#i-highlight"/></svg><span class="bar" style="background:#fdf2a7"></span><input type="color" value="#fdf2a7" data-sp-color="hiliteColor"></label>
+    <label class="sp-btn" title="Font color"><svg class="ic"><use href="#i-fontcolor"/></svg><span class="bar" style="background:#e5252a"></span><input type="color" value="#e5252a" data-sp-color="foreColor"></label>
+    <span class="sp-sep"></span>
+    <button class="sp-btn" type="button" data-sp="insertUnorderedList" title="Bullets"><svg class="ic"><use href="#i-bullets"/></svg></button>
+    <button class="sp-btn" type="button" data-sp="justifyLeft" title="Align left"><svg class="ic"><use href="#i-align-left"/></svg></button>
+    <button class="sp-btn" type="button" data-sp="justifyCenter" title="Center"><svg class="ic"><use href="#i-align-center"/></svg></button>
+    <select class="sp-style" id="sp-style" aria-label="Style" title="Style"><option value="p">Normal</option><option value="h1">Heading 1</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="blockquote">Quote</option></select>
+    <span class="sp-sep"></span>
+    <button class="sp-btn" type="button" data-sp="removeFormat" title="Clear formatting"><svg class="ic"><use href="#i-clear"/></svg></button>
+    <button class="sp-btn" type="button" data-sp-comment title="New comment"><svg class="ic"><use href="#i-commentplus"/></svg></button>
+  </div>
+
+  <script>
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const editor = $("page");
+      const sheet = $("sheet");
+      const fileMenu = $("file-menu");
+      const fontSizeInput = $("font-size");
+      const zoomRange = $("zoom-range");
+      const zoomLabel = $("zoom-label");
+
+      let savedRange = null;
+      let comments = [];
+      let versions = [];
+
+      const selection = () => window.getSelection();
+
+      function restoreSelection() {
+        editor.focus();
+        if (!savedRange) return;
+        const sel = selection();
+        sel.removeAllRanges();
+        sel.addRange(savedRange);
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"]/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;"
+        }[char]));
+      }
+
+      function exec(command, value) {
+        restoreSelection();
+        document.execCommand(command, false, value ?? null);
+        refresh();
+      }
+
+      function insertHtml(html) {
+        restoreSelection();
+        document.execCommand("insertHTML", false, html);
+        refresh();
+      }
+
+      function currentBlock() {
+        const node = selection().anchorNode;
+        const element = node && (node.nodeType === 3 ? node.parentNode : node);
+        return element && element.closest ? element.closest("p,h1,h2,h3,li,blockquote") : null;
+      }
+
+      function setFontSize(points) {
+        const size = Math.max(1, Number(points) || 12);
+        fontSizeInput.value = size;
+        restoreSelection();
+        document.execCommand("fontSize", false, "7");
+        editor.querySelectorAll('font[size="7"]').forEach((font) => {
+          const span = document.createElement("span");
+          span.style.fontSize = size + "pt";
+          span.innerHTML = font.innerHTML;
+          font.replaceWith(span);
+        });
+        refresh();
+      }
+
+      function stepFontSize(delta) {
+        setFontSize((Number(fontSizeInput.value) || 12) + delta);
+      }
+
+      function wordCount() {
+        const text = editor.innerText.trim();
+        return text ? text.split(/\s+/).length : 0;
+      }
+
+      let PAGE_H = 1056, PAGE_STEP = 1068;
+      const PAGE_GAP = 12;
+      let pagesTotal = 1;
+      let paginateQueued = false;
+
+      function pageCount() {
+        return pagesTotal;
+      }
+
+      /* Push blocks that would cross a page boundary onto the next page and
+         grow the sheet so a new page appears whenever the last one fills up. */
+      function paginate() {
+        paginateQueued = false;
+        const prevZoom = sheet.style.zoom;
+        sheet.style.zoom = 1;
+        sheet.style.minHeight = "";
+
+        const units = [];
+        [...editor.children].forEach((child) => {
+          units.push(child);
+          if (/^(UL|OL)$/.test(child.tagName)) units.push(...child.children);
+        });
+        units.forEach((el) => {
+          el.style.removeProperty("--push");
+          if (!el.getAttribute("style")) el.removeAttribute("style");
+        });
+
+        const margin = parseFloat(getComputedStyle(sheet).paddingTop) || 96;
+        const footer = sheet.querySelector(".footer");
+        const footerH = footer && footer.offsetParent ? footer.offsetHeight + 12 : 0;
+        const usable = PAGE_H - margin * 2 - footerH;
+
+        units.forEach((el) => {
+          if (el.classList.contains("page-break") || el.offsetParent === null) return;
+          const top = el.getBoundingClientRect().top - sheet.getBoundingClientRect().top;
+          const height = el.offsetHeight;
+          const k = Math.floor(top / PAGE_STEP);
+          const pageTop = k * PAGE_STEP + margin;
+          const limit = k * PAGE_STEP + PAGE_H - margin - footerH;
+          let push = 0;
+          if (height <= usable && top + height > limit) push = (k + 1) * PAGE_STEP + margin - top;
+          else if (k > 0 && top < pageTop) push = pageTop - top;
+          if (push > 0.5) el.style.setProperty("--push", push + "px");
+        });
+
+        const natural = sheet.offsetHeight;
+        pagesTotal = Math.max(1, Math.ceil((natural + PAGE_GAP) / PAGE_STEP));
+        sheet.style.minHeight = pagesTotal * PAGE_STEP - PAGE_GAP + "px";
+        const bgs = $("page-bgs");
+        while (bgs.children.length < pagesTotal) { const c = document.createElement("div"); c.className = "pgcard"; bgs.appendChild(c); }
+        while (bgs.children.length > pagesTotal) bgs.lastChild.remove();
+        [...bgs.children].forEach((c, i) => { c.style.top = i * PAGE_STEP + "px"; });
+        sheet.style.zoom = prevZoom;
+        updatePageLabel();
+      }
+
+      function schedulePaginate() {
+        if (paginateQueued) return;
+        paginateQueued = true;
+        requestAnimationFrame(paginate);
+      }
+
+      function currentPage() {
+        const sel = selection();
+        if (!sel.rangeCount || !editor.contains(sel.anchorNode)) return 1;
+        const node = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentNode : sel.anchorNode;
+        const block = node.closest ? node.closest("#page > *") : null;
+        if (!block) return 1;
+        const zoom = Number(sheet.style.zoom) || 1;
+        const top = (block.getBoundingClientRect().top - sheet.getBoundingClientRect().top) / zoom;
+        return Math.min(pagesTotal, Math.max(1, Math.floor(top / PAGE_STEP) + 1));
+      }
+
+      function updatePageLabel() {
+        $("page-label").textContent = `Page ${currentPage()} of ${pagesTotal}`;
+      }
+
+      function refresh(light) {
+        $("word-label").textContent = wordCount().toLocaleString() + " words";
+        updatePageLabel();
+        if (light !== true) schedulePaginate();
+        document.querySelectorAll("[data-state]").forEach((button) => {
+          button.classList.toggle("on", document.queryCommandState(button.dataset.state));
+        });
+      }
+
+      let navMode = false;
+      function renderComments() {
+        if (navMode) return renderNav();
+        document.querySelector(".sidebar-head").textContent = "Comments";
+        const list = $("comments-list");
+        list.innerHTML = comments.length
+          ? comments.map((item) => (
+              `<div class="comment-card"><b>Comment [${item.id}]</b><br>"${escapeHtml(item.quote.slice(0, 40))}"<br>${escapeHtml(item.text)}</div>`
+            )).join("")
+          : "<small>No comments in this document.</small>";
+      }
+
+      function closeFileMenu() {
+        fileMenu.classList.remove("on");
+      }
+
+      function newDocument() {
+        if (!confirm("Start a new blank document? Unsaved changes will be lost.")) return;
+        editor.innerHTML = "<p><br></p>";
+        $("doc-name").value = "Document1";
+        closeFileMenu();
+        refresh();
+      }
+
+      function exportDocument(format) {
+        closeFileMenu();
+        const name = ($("doc-name").value || "Document1").replace(/[^\w\- ]/g, "");
+        if (format === "pdf") {
+          window.print();
+          return;
+        }
+
+        let blob;
+        let extension = format;
+        if (format === "txt") {
+          blob = new Blob([editor.innerText], { type: "text/plain" });
+        } else {
+          const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(name)}</title></head><body>${editor.innerHTML.replace(/--push:\s*[^;"]*;?/g, "")}</body></html>`;
+          blob = new Blob([html], { type: format === "docx" ? "application/msword" : "text/html" });
+          extension = format === "docx" ? "doc" : "html";
+        }
+
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = name + "." + extension;
+        link.click();
+      }
+
+      function insertTable() {
+        const rows = Number(prompt("Number of rows", 3)) || 2;
+        const cols = Number(prompt("Number of columns", 3)) || 2;
+        let html = "<table>";
+        for (let i = 0; i < rows; i++) html += "<tr>" + "<td>&nbsp;</td>".repeat(cols) + "</tr>";
+        insertHtml(html + "</table><p><br></p>");
+      }
+
+      function insertLink() {
+        const url = prompt("Address", "https://");
+        if (!url) return;
+        const selected = selection().toString();
+        if (selected) exec("createLink", url);
+        else insertHtml(`<a href="${escapeHtml(url)}">${escapeHtml(url)}</a>`);
+      }
+
+      function insertEquation() {
+        const text = prompt("Equation (plain text, e.g. E = mc^2)");
+        if (text) insertHtml(`<span class="eq" contenteditable="false">${escapeHtml(text)}</span>&nbsp;`);
+      }
+
+      function insertChart() {
+        const labels = (prompt("Category names, comma separated", "Q1,Q2,Q3,Q4") || "").split(",");
+        const values = (prompt("Values, comma separated", "12,18,9,22") || "").split(",").map(Number);
+        if (!labels.length || values.some(Number.isNaN)) return;
+        const max = Math.max(...values) || 1;
+        const bars = labels.map((label, index) => (
+          `<div><i style="height:${values[index] / max * 130}px"></i>${escapeHtml(label.trim())}</div>`
+        )).join("");
+        insertHtml(`<div class="chart" contenteditable="false">${bars}</div><p><br></p>`);
+      }
+
+      function insertToc() {
+        const old = editor.querySelector(".toc");
+        if (old) old.remove();
+        let html = '<div class="toc" contenteditable="false"><div class="toc-title">Table of Contents</div>';
+        [...editor.querySelectorAll("h1,h2,h3")].forEach((heading, index) => {
+          heading.id = "h" + index;
+          html += `<a href="#h${index}" style="margin-left:${(heading.tagName[1] - 1) * 18}px"><span>${escapeHtml(heading.textContent)}</span><span>1</span></a>`;
+        });
+        editor.insertAdjacentHTML("afterbegin", html + "</div>");
+        refresh();
+      }
+
+      function addComment() {
+        const text = prompt("Comment");
+        if (!text) return;
+        restoreSelection();
+        const range = savedRange;
+        if (!range || range.collapsed) {
+          alert("Select some text first.");
+          return;
+        }
+        const mark = document.createElement("span");
+        mark.className = "comment-mark";
+        try {
+          range.surroundContents(mark);
+        } catch (error) {
+          alert("Select text within one paragraph.");
+          return;
+        }
+        comments.push({ id: comments.length + 1, text, quote: mark.textContent });
+        renderComments();
+        document.body.classList.add("show-comments");
+        refresh();
+      }
+
+      function toggleSpellcheck() {
+        editor.spellcheck = !editor.spellcheck;
+        $("spell-btn").classList.toggle("on", editor.spellcheck);
+        editor.focus();
+      }
+
+      function openThesaurus() {
+        const word = selection().toString().trim() || prompt("Look up a word");
+        if (word) window.open("https://www.thesaurus.com/browse/" + encodeURIComponent(word), "_blank");
+      }
+
+      function findText() {
+        const query = prompt("Find");
+        if (!query) return;
+        const found = window.find ? window.find(query) : false;
+        if (!found) alert("No matches found.");
+      }
+
+      function replaceText() {
+        const query = prompt("Find");
+        if (!query) return;
+        const replacement = prompt("Replace with", "") || "";
+        editor.innerHTML = editor.innerHTML.split(query).join(escapeHtml(replacement));
+        refresh();
+      }
+
+      function saveVersion() {
+        versions.push({ time: new Date().toLocaleTimeString(), html: editor.innerHTML });
+      }
+
+      function restoreVersion() {
+        if (!versions.length) return alert("No saved versions yet.");
+        const index = Number(prompt(versions.map((item, i) => i + ": " + item.time).join("\n"), versions.length - 1));
+        if (versions[index]) {
+          editor.innerHTML = versions[index].html;
+          refresh();
+        }
+      }
+
+      function showWordCount() {
+        alert(
+          `Words: ${wordCount()}\n` +
+          `Characters (no spaces): ${editor.innerText.replace(/\s/g, "").length}\n` +
+          `Paragraphs: ${editor.querySelectorAll("p,h1,h2,h3,li").length}\n` +
+          `Pages: ${pageCount()}`
+        );
+      }
+
+      function setMode(mode) {
+        document.body.classList.remove("focus-mode");
+        editor.contentEditable = mode !== "read" ? "true" : "false";
+        $("view-read").classList.toggle("on", mode === "read");
+        $("view-focus").classList.toggle("on", mode === "focus");
+        if (mode === "focus") document.body.classList.add("focus-mode");
+      }
+
+      function setZoom(scale) {
+        sheet.style.zoom = scale;
+        const percent = Math.round(Number(scale) * 100);
+        zoomRange.value = percent;
+        const zoomSelect = document.querySelector('[data-action-change="zoom"]');
+        if (zoomSelect) zoomSelect.value = String(Number(scale));
+        zoomLabel.textContent = percent + "%";
+        zoomRange.style.setProperty("--fill", ((percent - 50) / 150 * 100) + "%");
+      }
+
+      function nudgeZoom(delta) {
+        const next = Math.min(200, Math.max(50, Number(zoomRange.value) + Number(delta)));
+        setZoom(next / 100);
+      }
+
+      function formatField(input, value) {
+        const rounded = Math.round(value * 100) / 100;
+        return input.dataset.field.startsWith("indent") ? rounded + '"' : rounded + " pt";
+      }
+
+      function showRibbon(name) {
+        document.querySelectorAll(".tab[data-tab]").forEach((tab) => {
+          tab.classList.toggle("on", tab.dataset.tab === name);
+        });
+        document.body.classList.remove("ribbon-collapsed");
+        document.querySelectorAll(".ribbon").forEach((ribbon) => {
+          ribbon.classList.toggle("on", ribbon.id === "ribbon-" + name);
+        });
+      }
+
+      const actions = {
+        "toggle-ribbon": () => document.body.classList.toggle("ribbon-collapsed"),
+        "toggle-styles": (button) => {
+          const pop = $("style-pop");
+          const rect = button.closest(".style-row").getBoundingClientRect();
+          pop.style.top = rect.bottom + 4 + "px";
+          pop.style.left = rect.left + "px";
+          pop.classList.toggle("on");
+        },
+        "step-field": (button) => {
+          const input = button.closest(".numfield").querySelector("input");
+          const step = Number(input.dataset.step) || 1;
+          const next = Math.max(0, (parseFloat(input.value) || 0) + step * Number(button.dataset.delta));
+          input.value = formatField(input, next);
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        },
+        "page-border": () => sheet.classList.toggle("bordered"),
+        "page-color": () => $("page-color-input").click(),
+        "switch-bg": () => document.body.classList.toggle("page-light"),
+        "zoom-100": () => setZoom(1),
+        "toggle-ruler": () => document.body.classList.toggle("show-ruler"),
+        "insert-symbol": () => {
+          const symbol = prompt("Symbol", "\u00A9");
+          if (symbol) insertHtml(escapeHtml(symbol));
+        },
+        "insert-emoji": () => {
+          const emoji = prompt("Emoji", "\uD83D\uDE0A");
+          if (emoji) insertHtml(escapeHtml(emoji));
+        },
+        "insert-note": (button) => {
+          const text = prompt(button.dataset.kind + " text");
+          if (!text) return;
+          const count = editor.querySelectorAll(".note").length + 1;
+          insertHtml(`<sup>${count}</sup>`);
+          editor.insertAdjacentHTML("beforeend",
+            `<p class="note" data-kind="${button.dataset.kind}" contenteditable="false"><sup>${count}</sup> ${escapeHtml(text)}</p>`);
+          refresh();
+        },
+        "help": () => window.open("https://support.microsoft.com/word", "_blank"),
+        "support": () => window.open("https://support.microsoft.com/contactus", "_blank"),
+        "feedback": () => openFeedback(),
+        "shortcuts": () => alert("Ctrl+B  Bold\nCtrl+I  Italic\nCtrl+U  Underline\nCtrl+Z  Undo\nCtrl+Y  Redo\nCtrl+L / E / R / J  Align left / center / right / justify"),
+        "whats-new": () => alert("OpenWriter: detached ribbons, dark mode, and more."),
+        "toggle-file-menu": () => fileMenu.classList.toggle("on"),
+        "close-file-menu": closeFileMenu,
+        "toggle-dark": () => {
+          document.body.classList.toggle("dark");
+          $("view-dark").classList.toggle("on", document.body.classList.contains("dark"));
+        },
+        "toggle-comments": () => { navMode = false; renderComments(); document.body.classList.toggle("show-comments"); },
+        "show-comments": () => { navMode = false; renderComments(); document.body.classList.add("show-comments"); },
+        "toggle-header-footer": () => {
+          document.body.classList.toggle("show-hf");
+          refresh();
+        },
+        "new-doc": newDocument,
+        "grow-font": () => stepFontSize(1),
+        "shrink-font": () => stepFontSize(-1),
+        "find": findText,
+        "replace": replaceText,
+        "insert-table": insertTable,
+        "pick-image": () => $("image-input").click(),
+        "insert-shape": () => insertHtml('<span class="shape" contenteditable="false"></span>'),
+        "insert-chart": insertChart,
+        "insert-link": insertLink,
+        "add-comment": addComment,
+        "insert-page-number": () => insertHtml('<span class="pn" contenteditable="false" style="font-weight:600">1</span>'),
+        "insert-equation": insertEquation,
+        "set-margins": () => document.documentElement.style.setProperty("--page-margin", "48px"),
+        "toggle-orientation": () => { landscape = !landscape; applyPageSize(); },
+        "insert-break": () => insertHtml('<div class="page-break" contenteditable="false">Page Break</div><p><br></p>'),
+        "insert-toc": insertToc,
+        "toggle-spellcheck": toggleSpellcheck,
+        "word-count": showWordCount,
+        "thesaurus": openThesaurus,
+        "save-version": saveVersion,
+        "restore-version": restoreVersion
+      };
+
+      document.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-action], [data-exec], [data-style], [data-tab]");
+        if (!event.target.closest("#file-menu") && !event.target.closest(".tab.file")) {
+          closeFileMenu();
+        }
+        if (!event.target.closest("#style-pop") && !event.target.closest('[data-action="toggle-styles"]')) {
+          $("style-pop").classList.remove("on");
+        }
+        if (!target) return;
+
+        if (target.dataset.tab) {
+          showRibbon(target.dataset.tab);
+          return;
+        }
+
+        if (target.dataset.style) {
+          $("style-pop").classList.remove("on");
+          exec("formatBlock", target.dataset.style);
+          return;
+        }
+
+        if (target.dataset.exec) {
+          exec(target.dataset.exec);
+          return;
+        }
+
+        const action = target.dataset.action;
+        if (action === "export") exportDocument(target.dataset.format);
+        else if (action === "set-mode") setMode(target.dataset.mode);
+        else if (action === "nudge-zoom") nudgeZoom(target.dataset.delta);
+        else if (action === "set-columns") {
+          editor.style.columnCount = target.dataset.columns;
+          editor.style.columnGap = "28px";
+        } else if (actions[action]) {
+          actions[action](target);
+        }
+      });
+
+      document.addEventListener("change", (event) => {
+        const target = event.target;
+        if (target.dataset.execValue) {
+          exec(target.dataset.execValue, target.value);
+          return;
+        }
+        if (target.dataset.actionChange === "line-height") editor.style.lineHeight = target.value;
+        if (target.dataset.actionChange === "shade") {
+          const block = currentBlock();
+          if (block) block.style.background = target.value;
+        }
+        if (target.dataset.actionChange === "zoom") setZoom(target.value);
+        if (target.id === "page-color-input") sheet.style.setProperty("--bg-page", target.value);
+        if (target.dataset.field) {
+          const value = Math.max(0, parseFloat(target.value) || 0);
+          target.value = formatField(target, value);
+          restoreSelection();
+          const block = currentBlock();
+          if (!block) return;
+          const css = {
+            "indent-left": ["marginLeft", value * 96 + "px"],
+            "indent-right": ["marginRight", value * 96 + "px"],
+            "space-before": ["marginTop", value + "pt"],
+            "space-after": ["marginBottom", value + "pt"]
+          }[target.dataset.field];
+          block.style[css[0]] = css[1];
+        }
+      });
+
+      document.addEventListener("input", (event) => {
+        const bar = event.target.closest && event.target.closest(".colorbtn");
+        if (bar) bar.querySelector(".bar").style.background = event.target.value;
+      });
+
+      fontSizeInput.addEventListener("change", () => setFontSize(fontSizeInput.value));
+      zoomRange.addEventListener("input", () => setZoom(zoomRange.value / 100));
+
+      $("image-input").addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => insertHtml(`<img src="${reader.result}" alt="">`);
+        reader.readAsDataURL(file);
+        event.target.value = "";
+      });
+
+      document.addEventListener("selectionchange", () => {
+        const sel = selection();
+        if (sel.rangeCount && editor.contains(sel.anchorNode)) {
+          savedRange = sel.getRangeAt(0).cloneRange();
+        }
+        refresh(true);
+        if (pop.classList.contains("on")) updatePop();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && document.body.classList.contains("focus-mode")) {
+          setMode("print");
+        }
+      });
+
+      editor.addEventListener("input", refresh);
+      $("doc-name").addEventListener("input", () => {
+        document.title = ($("doc-name").value || "Document") + " - OpenWriter";
+      });
+
+
+      /* ---------- selection pop-up ---------- */
+      const pop = $("sel-pop");
+      const popSize = $("sp-size");
+
+      function selectionInEditor() {
+        const sel = selection();
+        if (!sel.rangeCount || sel.isCollapsed) return null;
+        const range = sel.getRangeAt(0);
+        if (!editor.contains(range.commonAncestorContainer)) return null;
+        if (!sel.toString().trim()) return null;
+        return range;
+      }
+
+      function updatePop() {
+        if (editor.contentEditable !== "true") { pop.classList.remove("on"); return; }
+        const range = selectionInEditor();
+        if (!range) {
+          if (!pop.contains(document.activeElement)) pop.classList.remove("on");
+          return;
+        }
+        const rect = range.getBoundingClientRect();
+        pop.classList.add("on");
+        const w = pop.offsetWidth, h = pop.offsetHeight;
+        let left = rect.left + rect.width / 2 - w / 2;
+        left = Math.max(8, Math.min(window.innerWidth - w - 8, left));
+        let top = rect.top - h - 10;
+        if (top < 8) top = Math.min(window.innerHeight - h - 8, rect.bottom + 10);
+        pop.style.left = left + "px";
+        pop.style.top = top + "px";
+
+        const node = range.startContainer.nodeType === 3 ? range.startContainer.parentNode : range.startContainer;
+        if (node && node.nodeType === 1 && !pop.contains(document.activeElement)) {
+          popSize.value = Math.round(parseFloat(getComputedStyle(node).fontSize) * 0.75 * 2) / 2;
+        }
+        pop.querySelectorAll("[data-sp]").forEach((b) => {
+          try { b.classList.toggle("on", document.queryCommandState(b.dataset.sp)); } catch (e) {}
+        });
+      }
+
+      pop.addEventListener("mousedown", (event) => {
+        if (!event.target.closest("select, input")) event.preventDefault();
+      });
+      pop.addEventListener("click", (event) => {
+        const btn = event.target.closest("[data-sp], [data-sp-comment]");
+        if (!btn) return;
+        if (btn.hasAttribute("data-sp-comment")) {
+          restoreSelection();
+          addComment();
+        } else {
+          exec(btn.dataset.sp);
+        }
+        requestAnimationFrame(updatePop);
+      });
+      pop.addEventListener("change", (event) => {
+        const t = event.target;
+        if (t.id === "sp-font") exec("fontName", t.value);
+        else if (t.id === "sp-size") setFontSize(t.value);
+        else if (t.id === "sp-style") exec("formatBlock", t.value);
+        else if (t.dataset.spColor) {
+          const bar = t.parentNode.querySelector(".bar");
+          if (bar) bar.style.background = t.value;
+          exec(t.dataset.spColor, t.value);
+        }
+        requestAnimationFrame(updatePop);
+      });
+      popSize.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") { event.preventDefault(); setFontSize(popSize.value); }
+      });
+
+      editor.addEventListener("mouseup", () => setTimeout(updatePop, 0));
+      editor.addEventListener("keyup", (event) => {
+        if (event.shiftKey || event.key === "Shift" || event.ctrlKey || event.key === "a") setTimeout(updatePop, 0);
+      });
+      editor.addEventListener("mousedown", () => pop.classList.remove("on"));
+      document.querySelector(".work-main").addEventListener("scroll", () => {
+        if (pop.classList.contains("on")) updatePop();
+      });
+      window.addEventListener("resize", () => { schedulePaginate(); if (pop.classList.contains("on")) updatePop(); });
+
+
+      /* =====================  UI toolkit  ===================== */
+      let landscape = false;
+      let pageSizeName = "Letter";
+      const PAGE_SIZES = { Letter: [816, 1056], A4: [794, 1123], Legal: [816, 1344], A5: [559, 794] };
+
+      function applyPageSize() {
+        let [w, h] = PAGE_SIZES[pageSizeName];
+        if (landscape) [w, h] = [h, w];
+        PAGE_H = h; PAGE_STEP = h + PAGE_GAP;
+        sheet.style.width = w + "px";
+        sheet.style.setProperty("--page-h", h + "px");
+        paginate();
+      }
+
+      function toast(message) {
+        document.querySelectorAll(".ow-toast").forEach((t) => t.remove());
+        const t = document.createElement("div");
+        t.className = "ow-toast";
+        t.textContent = message;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3200);
+      }
+
+      function closeMenus() { document.querySelectorAll(".ow-menu").forEach((m) => m.remove()); }
+
+      function openMenu(anchor, items) {
+        closeMenus();
+        const menu = document.createElement("div");
+        menu.className = "ow-menu";
+        items.forEach((item) => {
+          if (item === "-") { const s = document.createElement("div"); s.className = "ow-sep"; menu.appendChild(s); return; }
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "ow-mi" + (item.on ? " on" : "") + (item.pad ? " pad" : "");
+          b.textContent = item.label;
+          b.addEventListener("click", () => { closeMenus(); item.run(); });
+          menu.appendChild(b);
+        });
+        document.body.appendChild(menu);
+        const r = anchor.getBoundingClientRect();
+        let left = Math.min(r.left, window.innerWidth - menu.offsetWidth - 8);
+        let top = r.bottom + 4;
+        if (top + menu.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - menu.offsetHeight - 4);
+        menu.style.left = Math.max(8, left) + "px";
+        menu.style.top = top + "px";
+      }
+      document.addEventListener("mousedown", (e) => { if (!e.target.closest(".ow-menu")) closeMenus(); });
+
+      function openDialog(title, bodyHtml, buttons, opts) {
+        const ov = document.createElement("div");
+        ov.className = "ow-ov";
+        ov.innerHTML = `<div class="ow-dlg ${opts && opts.wide ? "wide" : ""}" role="dialog" aria-label="${escapeHtml(title)}"><div class="ow-head"><span>${escapeHtml(title)}</span><button class="x" type="button" aria-label="Close">×</button></div><div class="ow-body">${bodyHtml}</div><div class="ow-foot"></div></div>`;
+        const dlg = ov.firstChild;
+        const close = () => { ov.remove(); document.removeEventListener("keydown", onKey, true); };
+        const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+        document.addEventListener("keydown", onKey, true);
+        ov.addEventListener("mousedown", (e) => { if (e.target === ov) close(); });
+        dlg.querySelector(".x").addEventListener("click", close);
+        (buttons || [{ label: "Close" }]).forEach((b) => {
+          const el = document.createElement("button");
+          el.type = "button";
+          el.className = "ow-btn" + (b.primary ? " primary" : "");
+          el.textContent = b.label;
+          el.addEventListener("click", () => { if (!b.run || b.run(dlg) !== false) close(); });
+          dlg.querySelector(".ow-foot").appendChild(el);
+        });
+        document.body.appendChild(ov);
+        const first = dlg.querySelector("input, select, textarea");
+        if (first) first.focus();
+        dlg.close = close;
+        return dlg;
+      }
+
+      const bind = (title, fn) => document.querySelectorAll('button[title="' + title + '"]').forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); fn(b, e); }));
+      const val = (dlg, sel) => dlg.querySelector(sel).value;
+
+      function selectedBlocks() {
+        const sel = "p,h1,h2,h3,li,blockquote";
+        const r = savedRange;
+        let list = r ? [...editor.querySelectorAll(sel)].filter((el) => r.intersectsNode(el) && !el.querySelector(sel)) : [];
+        if (!list.length) { const b = currentBlock(); if (b) list = [b]; }
+        return list;
+      }
+
+      function mapSelectedText(fn) {
+        const r = savedRange;
+        if (!r || r.collapsed) return toast("Select some text first");
+        restoreSelection();
+        const root = r.commonAncestorContainer.nodeType === 3 ? r.commonAncestorContainer.parentNode : r.commonAncestorContainer;
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+        while (walker.nextNode()) if (r.intersectsNode(walker.currentNode)) nodes.push(walker.currentNode);
+        nodes.forEach((n) => {
+          const s = n === r.startContainer ? r.startOffset : 0;
+          const e = n === r.endContainer ? r.endOffset : n.length;
+          n.data = n.data.slice(0, s) + fn(n.data.slice(s, e)) + n.data.slice(e);
+        });
+        refresh();
+      }
+
+      /* ---------- Format Painter ---------- */
+      let painter = null;
+      bind("Format Painter", (btn) => {
+        if (painter) { painter = null; btn.classList.remove("on"); return; }
+        const r = savedRange;
+        if (!r) return toast("Click in the text whose format you want to copy");
+        const node = r.startContainer.nodeType === 3 ? r.startContainer.parentNode : r.startContainer;
+        const cs = getComputedStyle(node);
+        painter = {
+          fontFamily: cs.fontFamily, fontSize: cs.fontSize, color: cs.color,
+          fontWeight: cs.fontWeight, fontStyle: cs.fontStyle,
+          textDecoration: cs.textDecorationLine === "none" ? "none" : cs.textDecorationLine,
+          backgroundColor: cs.backgroundColor
+        };
+        btn.classList.add("on");
+        toast("Format copied — now select the text to apply it to");
+      });
+      editor.addEventListener("mouseup", () => {
+        if (!painter) return;
+        setTimeout(() => {
+          const sel = selection();
+          if (!sel.rangeCount || sel.isCollapsed || !editor.contains(sel.anchorNode)) return;
+          const style = Object.entries(painter).map(([k, v]) => k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + ":" + v).join(";");
+          document.execCommand("insertHTML", false, `<span style="${style}">${escapeHtml(sel.toString())}</span>`);
+          painter = null;
+          document.querySelectorAll('button[title="Format Painter"]').forEach((b) => b.classList.remove("on"));
+          refresh();
+        }, 0);
+      });
+
+      /* ---------- Change Case ---------- */
+      bind("Change Case", (btn) => openMenu(btn, [
+        { label: "Sentence case", run: () => mapSelectedText((t) => t.toLowerCase().replace(/(^\s*|[.!?]\s+)([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase())) },
+        { label: "lowercase", run: () => mapSelectedText((t) => t.toLowerCase()) },
+        { label: "UPPERCASE", run: () => mapSelectedText((t) => t.toUpperCase()) },
+        { label: "Capitalize Each Word", run: () => mapSelectedText((t) => t.toLowerCase().replace(/(^|[\s\-(])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase())) },
+        { label: "tOGGLE cASE", run: () => mapSelectedText((t) => [...t].map((c) => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()).join("")) }
+      ]));
+
+      /* ---------- Font dialog ---------- */
+      bind("Font options", () => {
+        const r = savedRange;
+        const node = r ? (r.startContainer.nodeType === 3 ? r.startContainer.parentNode : r.startContainer) : editor;
+        const cs = getComputedStyle(node);
+        const fam = cs.fontFamily.split(",")[0].replace(/["']/g, "").trim();
+        const hex = "#" + (cs.color.match(/\d+/g) || [0, 0, 0]).slice(0, 3).map((n) => (+n).toString(16).padStart(2, "0")).join("");
+        const q = (c) => { try { return document.queryCommandState(c); } catch (e) { return false; } };
+        const fonts = ["Aptos", "Calibri", "Cambria", "Georgia", "Arial", "Times New Roman", "Courier New", "Verdana", "Trebuchet MS"];
+        if (!fonts.includes(fam)) fonts.unshift(fam);
+        const flags = [["bold", "Bold"], ["italic", "Italic"], ["underline", "Underline"], ["strikeThrough", "Strikethrough"], ["superscript", "Superscript"], ["subscript", "Subscript"]];
+        openDialog("Font", `
+          <div class="grid"><div><label class="f">Font</label><select id="fd-font">${fonts.map((f) => `<option ${f === fam ? "selected" : ""}>${escapeHtml(f)}</option>`).join("")}</select></div>
+          <div><label class="f">Size (pt)</label><input id="fd-size" type="number" min="1" max="400" value="${Math.round(parseFloat(cs.fontSize) * 0.75 * 2) / 2}"></div></div>
+          <label class="f">Font color</label><input id="fd-color" type="color" value="${hex}" style="width:60px;height:30px;padding:0">
+          <div class="checks">${flags.map(([c, l]) => `<label><input type="checkbox" data-c="${c}" ${q(c) ? "checked" : ""}> ${l}</label>`).join("")}</div>`,
+          [{ label: "Cancel" }, { label: "OK", primary: true, run: (d) => {
+            restoreSelection();
+            exec("fontName", val(d, "#fd-font"));
+            setFontSize(val(d, "#fd-size"));
+            exec("foreColor", val(d, "#fd-color"));
+            d.querySelectorAll("[data-c]").forEach((cb) => { if (q(cb.dataset.c) !== cb.checked) exec(cb.dataset.c); });
+          } }]);
+      });
+
+      /* ---------- Paragraph dialog ---------- */
+      function openParagraphDialog() {
+        const blocks = selectedBlocks();
+        const b = blocks[0];
+        if (!b) return toast("Click inside a paragraph first");
+        const cs = getComputedStyle(b);
+        const px = (v) => Math.round(parseFloat(v) / 96 * 100) / 100;
+        const pt = (v) => Math.round(parseFloat(v) * 0.75 * 10) / 10;
+        const align = ["left", "center", "right", "justify"].includes(cs.textAlign) ? cs.textAlign : "left";
+        openDialog("Paragraph", `
+          <label class="f">Alignment</label><select id="pd-align">${["left", "center", "right", "justify"].map((a) => `<option value="${a}" ${a === align ? "selected" : ""}>${a[0].toUpperCase() + a.slice(1)}</option>`).join("")}</select>
+          <div class="grid"><div><label class="f">Indent left (in)</label><input id="pd-il" type="number" step="0.1" min="0" value="${px(cs.marginLeft)}"></div>
+          <div><label class="f">Indent right (in)</label><input id="pd-ir" type="number" step="0.1" min="0" value="${px(cs.marginRight)}"></div>
+          <div><label class="f">Spacing before (pt)</label><input id="pd-sb" type="number" min="0" value="${pt(cs.marginTop)}"></div>
+          <div><label class="f">Spacing after (pt)</label><input id="pd-sa" type="number" min="0" value="${pt(cs.marginBottom)}"></div>
+          <div><label class="f">First line indent (in)</label><input id="pd-fi" type="number" step="0.1" value="${px(cs.textIndent)}"></div>
+          <div><label class="f">Line spacing</label><select id="pd-ls">${[1, 1.15, 1.5, 2, 2.5, 3].map((n) => `<option ${Math.abs(parseFloat(cs.lineHeight) / parseFloat(cs.fontSize) - n) < 0.06 ? "selected" : ""}>${n}</option>`).join("")}</select></div></div>`,
+          [{ label: "Cancel" }, { label: "OK", primary: true, run: (d) => {
+            blocks.forEach((el) => {
+              el.style.textAlign = val(d, "#pd-align");
+              el.style.marginLeft = val(d, "#pd-il") * 96 + "px";
+              el.style.marginRight = val(d, "#pd-ir") * 96 + "px";
+              el.style.marginTop = val(d, "#pd-sb") + "pt";
+              el.style.marginBottom = val(d, "#pd-sa") + "pt";
+              el.style.textIndent = val(d, "#pd-fi") * 96 + "px";
+              el.style.lineHeight = val(d, "#pd-ls");
+            });
+            refresh();
+          } }]);
+      }
+      bind("Paragraph options", openParagraphDialog);
+      bind("Styles options", (btn) => actions["toggle-styles"](document.querySelector(".style-row .style-more")));
+
+      /* ---------- Lists ---------- */
+      bind("Multilevel List", () => {
+        exec("insertOrderedList");
+        const b = currentBlock();
+        const ol = b && b.closest("ol");
+        if (ol) ol.classList.add("ml");
+        refresh();
+      });
+      bind("Checklist", () => {
+        exec("insertUnorderedList");
+        const b = currentBlock();
+        const ul = b && b.closest("ul");
+        if (ul) ul.classList.toggle("check", true);
+        refresh();
+      });
+      editor.addEventListener("click", (e) => {
+        const li = e.target.closest && e.target.closest("ul.check > li");
+        if (li && e.offsetX < 26 && e.target === li) { li.classList.toggle("done"); refresh(); }
+      });
+      editor.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          const b = currentBlock();
+          if (b && b.tagName === "LI") { e.preventDefault(); exec(e.shiftKey ? "outdent" : "indent"); }
+        }
+      });
+      editor.addEventListener("keyup", (e) => {
+        if (e.key === "Enter") { const b = currentBlock(); if (b && b.classList) b.classList.remove("done"); }
+      });
+
+      /* ---------- Direction, marks ---------- */
+      const setDir = (dir) => {
+        selectedBlocks().forEach((b) => { b.dir = dir; if (dir === "rtl" && !b.style.textAlign) b.style.textAlign = "right"; if (dir === "ltr" && b.style.textAlign === "right") b.style.textAlign = ""; });
+        document.querySelector('button[title="Left-to-Right"]').classList.toggle("on", dir === "ltr");
+        document.querySelector('button[title="Right-to-Left"]').classList.toggle("on", dir === "rtl");
+        refresh();
+      };
+      bind("Left-to-Right", () => setDir("ltr"));
+      bind("Right-to-Left", () => setDir("rtl"));
+      bind("Show/Hide ¶", (btn) => btn.classList.toggle("on", document.body.classList.toggle("show-marks")));
+
+      /* ---------- Paragraph spacing + borders ---------- */
+      const eachBlock = (fn) => { selectedBlocks().forEach(fn); refresh(); };
+      bind("Paragraph Spacing", (btn) => openMenu(btn, [
+        ...[1, 1.15, 1.5, 2, 2.5, 3].map((n) => ({ label: "Line spacing: " + n, pad: true, run: () => eachBlock((b) => { b.style.lineHeight = n; }) })),
+        "-",
+        { label: "Add space before paragraph", pad: true, run: () => eachBlock((b) => { b.style.marginTop = "12pt"; }) },
+        { label: "Remove space before paragraph", pad: true, run: () => eachBlock((b) => { b.style.marginTop = "0"; }) },
+        { label: "Add space after paragraph", pad: true, run: () => eachBlock((b) => { b.style.marginBottom = "12pt"; }) },
+        { label: "Remove space after paragraph", pad: true, run: () => eachBlock((b) => { b.style.marginBottom = "0"; }) }
+      ]));
+      const border = (side) => eachBlock((b) => { b.style[side] = "1px solid currentColor"; if (side === "border") b.style.padding = "4px 8px"; });
+      bind("Borders", (btn) => openMenu(btn, [
+        { label: "Bottom border", pad: true, run: () => border("borderBottom") },
+        { label: "Top border", pad: true, run: () => border("borderTop") },
+        { label: "Left border", pad: true, run: () => border("borderLeft") },
+        { label: "Right border", pad: true, run: () => border("borderRight") },
+        { label: "All borders", pad: true, run: () => border("border") },
+        "-",
+        { label: "No border", pad: true, run: () => eachBlock((b) => { b.style.border = "none"; b.style.padding = ""; }) }
+      ]));
+
+      /* ---------- Dictate ---------- */
+      let recognition = null;
+      bind("Dictate", (btn) => {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return toast("Dictation isn't supported in this browser — try Chrome or Edge");
+        if (recognition) { recognition.stop(); return; }
+        recognition = new SR();
+        recognition.lang = navigator.language || "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.onresult = (e) => {
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (!e.results[i].isFinal) continue;
+            restoreSelection();
+            document.execCommand("insertText", false, e.results[i][0].transcript.trim() + " ");
+          }
+          refresh();
+        };
+        recognition.onerror = (e) => toast("Dictation: " + e.error);
+        recognition.onend = () => { recognition = null; btn.classList.remove("on"); btn.querySelector(".lbl").textContent = "Dictate"; };
+        recognition.start();
+        btn.classList.add("on");
+        btn.querySelector(".lbl").textContent = "Stop";
+        toast("Listening… click Dictate again to stop");
+      });
+
+      /* ---------- Editor (proofing) ---------- */
+      const syllables = (w) => { w = w.toLowerCase().replace(/[^a-zà-ÿ]/g, ""); if (!w) return 0; if (w.length <= 3) return 1; return Math.max(1, (w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "").replace(/^y/, "").match(/[aeiouy]{1,2}/g) || []).length); };
+      function fixText(fn) {
+        const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+        let n;
+        while ((n = walker.nextNode())) { const v = fn(n.data); if (v !== n.data) n.data = v; }
+      }
+      function openEditorPane() {
+        const text = [...editor.querySelectorAll("p,h1,h2,h3,li,blockquote")].filter((e) => !e.classList.contains("note")).map((e) => e.innerText).join("\n");
+        const words = text.match(/[\p{L}\p{N}'’-]+/gu) || [];
+        const sentences = text.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
+        if (words.length < 3) return openDialog("Editor", "<p>Write a bit more and Editor will review it for you.</p>");
+        const syl = words.reduce((a, w) => a + syllables(w), 0);
+        const wps = words.length / Math.max(1, sentences.length);
+        const flesch = Math.round(Math.max(0, Math.min(100, 206.835 - 1.015 * wps - 84.6 * (syl / words.length))));
+        const issues = [];
+        (text.match(/\b(\p{L}+)(\s+\1\b)+/giu) || []).forEach((m) => issues.push({ k: "Repeated word", t: m, find: m }));
+        if (/ {2,}/.test(text)) issues.push({ k: "Extra spaces", t: (text.match(/ {2,}/g) || []).length + " place(s) with more than one space" });
+        sentences.filter((s) => s.split(/\s+/).length > 30).forEach((s) => issues.push({ k: "Long sentence", t: s.slice(0, 90) + "…", find: s.slice(0, 40) }));
+        sentences.filter((s) => /^[a-zà-ÿ]/.test(s) && !/^\d/.test(s)).forEach((s) => issues.push({ k: "Starts with lowercase", t: s.slice(0, 60), find: s.slice(0, 30) }));
+        const level = flesch >= 70 ? "Easy to read" : flesch >= 50 ? "Fairly easy" : flesch >= 30 ? "Difficult" : "Very difficult";
+        const dlg = openDialog("Editor", `
+          <div class="score"><div><b>${flesch}</b><small class="m">Readability (${level})</small></div><div><b>${Math.max(1, Math.round(words.length / 238))} min</b><small class="m">Reading time</small></div><div><b>${wps.toFixed(1)}</b><small class="m">Words / sentence</small></div></div>
+          ${issues.length ? issues.slice(0, 40).map((i, n) => `<div class="row"><div class="grow"><b>${i.k}</b><br><small>${escapeHtml(i.t)}</small></div>${i.find ? `<button class="ow-btn sm" data-find="${n}">Show</button>` : ""}</div>`).join("") : '<p>No issues found. Nice work!</p>'}`,
+          [{ label: "Close" }, ...(issues.some((i) => i.k === "Repeated word" || i.k === "Extra spaces") ? [{ label: "Fix spacing & repeats", primary: true, run: () => {
+            fixText((s) => s.replace(/(\S) {2,}/g, "$1 ").replace(/\b(\p{L}+)(\s+\1\b)+/giu, "$1"));
+            refresh(); toast("Fixed");
+          } }] : [])], { wide: true });
+        dlg.addEventListener("click", (e) => {
+          const b = e.target.closest("[data-find]");
+          if (!b) return;
+          dlg.close(); editor.focus(); window.getSelection().removeAllRanges();
+          if (window.find) window.find(issues[b.dataset.find].find, false, false, true);
+        });
+      }
+      bind("Editor", openEditorPane);
+
+      /* ---------- Add-ins ---------- */
+      bind("Add-ins", () => {
+        const LOREM = ["Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.", "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."];
+        const items = [
+          ["Date & time", "Insert today's date and the current time", () => insertHtml(escapeHtml(new Date().toLocaleString([], { dateStyle: "long", timeStyle: "short" })))],
+          ["Placeholder text", "Insert three paragraphs of Lorem ipsum", () => insertHtml(LOREM.map((t) => `<p>${t}</p>`).join(""))],
+          ["Horizontal line", "Insert a divider", () => insertHtml("<hr><p><br></p>")],
+          ["Signature line", "Insert a line to sign above", () => insertHtml('<p><br></p><p style="border-top:1px solid currentColor;width:240px;margin-top:30pt">Signature</p>')]
+        ];
+        const dlg = openDialog("Add-ins", items.map((it, i) => `<div class="row"><div class="grow"><b>${it[0]}</b><br><small>${it[1]}</small></div><button class="ow-btn sm" data-i="${i}">Insert</button></div>`).join(""));
+        dlg.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) { dlg.close(); items[b.dataset.i][2](); } });
+      });
+
+      /* ---------- Bookmarks ---------- */
+      bind("Bookmarks", () => {
+        const draw = (dlg) => {
+          const marks = [...editor.querySelectorAll(".bookmark")];
+          dlg.querySelector("#bm-list").innerHTML = marks.length ? marks.map((m, i) => `<div class="row"><div class="grow">${escapeHtml(m.dataset.name)}</div><button class="ow-btn sm" data-go="${i}">Go to</button><button class="ow-btn sm" data-del="${i}">Delete</button></div>`).join("") : "<small class='m'>No bookmarks yet.</small>";
+        };
+        const dlg = openDialog("Bookmarks", `<label class="f">Bookmark name</label><div style="display:flex;gap:8px"><input id="bm-name" type="text" placeholder="e.g. Introduction"><button class="ow-btn primary" id="bm-add">Add</button></div><div id="bm-list" style="margin-top:12px"></div>`);
+        draw(dlg);
+        dlg.querySelector("#bm-add").addEventListener("click", () => {
+          const name = val(dlg, "#bm-name").trim().replace(/[^\w\- ]/g, "");
+          if (!name) return toast("Enter a bookmark name");
+          if ([...editor.querySelectorAll(".bookmark")].some((m) => m.dataset.name === name)) return toast("That name already exists");
+          insertHtml(`<span class="bookmark" data-name="${escapeHtml(name)}" contenteditable="false" title="Bookmark: ${escapeHtml(name)}"></span>`);
+          draw(dlg);
+        });
+        dlg.addEventListener("click", (e) => {
+          const marks = [...editor.querySelectorAll(".bookmark")];
+          const g = e.target.closest("[data-go]"), d = e.target.closest("[data-del]");
+          if (g) { dlg.close(); marks[g.dataset.go].scrollIntoView({ block: "center", behavior: "smooth" }); }
+          if (d) { marks[d.dataset.del].remove(); draw(dlg); refresh(); }
+        });
+      });
+
+      /* ---------- Online video ---------- */
+      bind("Online Video", () => openDialog("Online video", `<label class="f">Paste a YouTube or Vimeo link, or a direct .mp4 / .webm URL</label><input id="ov-url" type="url" placeholder="https://www.youtube.com/watch?v=…">`,
+        [{ label: "Cancel" }, { label: "Insert", primary: true, run: (d) => {
+          const url = val(d, "#ov-url").trim();
+          let m;
+          let html = null;
+          if ((m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/))) html = `<div class="video-embed" contenteditable="false"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><p><br></p>`;
+          else if ((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/))) html = `<div class="video-embed" contenteditable="false"><iframe src="https://player.vimeo.com/video/${m[1]}" allowfullscreen></iframe></div><p><br></p>`;
+          else if (/^https?:\/\/.+\.(mp4|webm|ogg)(\?.*)?$/i.test(url)) html = `<video src="${escapeHtml(url)}" controls contenteditable="false"></video><p><br></p>`;
+          if (!html) { toast("That doesn't look like a supported video link"); return false; }
+          insertHtml(html);
+        } }]));
+
+      /* ---------- Page size ---------- */
+      bind("Size", (btn) => openMenu(btn, Object.keys(PAGE_SIZES).map((n) => ({
+        label: n + " (" + PAGE_SIZES[n].map((v) => Math.round(v / 96 * 100) / 100 + "\"").join(" × ") + ")", on: n === pageSizeName,
+        run: () => { pageSizeName = n; applyPageSize(); }
+      }))));
+
+      /* ---------- Citations ---------- */
+      const citations = [];
+      bind("Citations", () => {
+        const draw = (dlg) => {
+          dlg.querySelector("#ct-list").innerHTML = citations.length ? citations.map((c, i) => `<div class="row"><div class="grow"><b>${escapeHtml(c.author)}</b> (${escapeHtml(c.year)})<br><small>${escapeHtml(c.title)}</small></div><button class="ow-btn sm" data-cite="${i}">Cite</button></div>`).join("") : "<small class='m'>No sources yet.</small>";
+        };
+        const dlg = openDialog("Citations", `
+          <div class="grid"><div><label class="f">Author</label><input id="ct-a" type="text" placeholder="Smith, J."></div><div><label class="f">Year</label><input id="ct-y" type="text" placeholder="2024"></div></div>
+          <label class="f">Title</label><input id="ct-t" type="text"><label class="f">Publisher / URL</label><input id="ct-s" type="text">
+          <p style="margin:10px 0 0"><button class="ow-btn primary sm" id="ct-add">Add source &amp; cite</button></p>
+          <div id="ct-list" style="margin-top:10px"></div>`,
+          [{ label: "Close" }, { label: "Insert bibliography", primary: true, run: () => {
+            if (!citations.length) { toast("Add a source first"); return false; }
+            editor.querySelectorAll(".bib, .bib-h").forEach((e) => e.remove());
+            const sorted = [...citations].sort((a, b) => a.author.localeCompare(b.author));
+            editor.insertAdjacentHTML("beforeend", `<h2 class="bib-h">References</h2>` + sorted.map((c) => `<p class="bib" style="padding-left:36px;text-indent:-36px">${escapeHtml(c.author)} (${escapeHtml(c.year)}). ${escapeHtml(c.title)}.${c.src ? " " + escapeHtml(c.src) + "." : ""}</p>`).join(""));
+            refresh();
+          } }], { wide: true });
+        draw(dlg);
+        const cite = (c) => insertHtml(escapeHtml(`(${c.author.split(",")[0].trim()}, ${c.year})`));
+        dlg.querySelector("#ct-add").addEventListener("click", () => {
+          const c = { author: val(dlg, "#ct-a").trim(), year: val(dlg, "#ct-y").trim() || "n.d.", title: val(dlg, "#ct-t").trim(), src: val(dlg, "#ct-s").trim() };
+          if (!c.author || !c.title) return toast("Author and title are required");
+          citations.push(c); dlg.close(); cite(c);
+        });
+        dlg.addEventListener("click", (e) => { const b = e.target.closest("[data-cite]"); if (b) { dlg.close(); cite(citations[b.dataset.cite]); } });
+      });
+      bind("Update Table of Contents", () => { if (!editor.querySelector(".toc")) return toast("There's no table of contents yet"); insertToc(); toast("Table of contents updated"); });
+      bind("Remove Table of Contents", () => { const t = editor.querySelector(".toc"); if (!t) return toast("There's no table of contents"); t.remove(); refresh(); });
+      const showNote = (kind) => { const n = editor.querySelector(`.note[data-kind="${kind}"]`); n ? n.scrollIntoView({ block: "center", behavior: "smooth" }) : toast("No " + kind.toLowerCase() + "s in this document"); };
+      bind("Show Footnotes", () => showNote("Footnote"));
+      bind("Show Endnotes", () => showNote("Endnote"));
+
+      /* ---------- Navigation pane ---------- */
+      function renderNav() {
+        document.querySelector(".sidebar-head").textContent = "Navigation";
+        const heads = [...editor.querySelectorAll("h1,h2,h3")];
+        const list = $("comments-list");
+        list.innerHTML = heads.length ? heads.map((h, i) => `<button class="nav-item" data-nav="${i}" style="padding-left:${8 + (h.tagName[1] - 1) * 14}px">${escapeHtml(h.textContent.trim() || "(empty heading)")}</button>`).join("") : "<small>No headings yet. Apply a Heading style to build the outline.</small>";
+      }
+      $("comments-list").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-nav]");
+        if (!b) return;
+        const h = editor.querySelectorAll("h1,h2,h3")[b.dataset.nav];
+        if (h) h.scrollIntoView({ block: "start", behavior: "smooth" });
+      });
+      bind("Navigation", () => {
+        if (document.body.classList.contains("show-comments") && navMode) { document.body.classList.remove("show-comments"); return; }
+        navMode = true; renderNav(); document.body.classList.add("show-comments");
+      });
+      editor.addEventListener("input", () => { if (navMode) renderNav(); });
+
+      /* ---------- Top bar: launcher, account, pills ---------- */
+      const openInput = $("open-input");
+      function openFile(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          let html;
+          if (/\.html?$/i.test(file.name)) {
+            const doc = new DOMParser().parseFromString(String(reader.result), "text/html");
+            doc.querySelectorAll("script,iframe[srcdoc],style,link,meta").forEach((n) => n.remove());
+            doc.body.querySelectorAll("*").forEach((n) => [...n.attributes].forEach((a) => { if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name); }));
+            html = doc.body.innerHTML.trim() || "<p><br></p>";
+          } else {
+            html = String(reader.result).split(/\r?\n/).map((l) => `<p>${l ? escapeHtml(l) : "<br>"}</p>`).join("");
+          }
+          editor.innerHTML = html;
+          $("doc-name").value = file.name.replace(/\.[^.]+$/, "");
+          document.title = $("doc-name").value + " - OpenWriter";
+          refresh();
+        };
+        reader.readAsText(file);
+      }
+      openInput.addEventListener("change", () => { if (openInput.files[0]) openFile(openInput.files[0]); openInput.value = ""; });
+
+      bind("App launcher", (btn) => openMenu(btn, [
+        { label: "New document", run: newDocument },
+        { label: "Open file…", run: () => openInput.click() },
+        { label: "Save a copy (HTML)", run: () => exportDocument("html") },
+        { label: "Print / Save as PDF", run: () => exportDocument("pdf") },
+        "-",
+        { label: "Keyboard shortcuts", run: () => actions.shortcuts() }
+      ]));
+
+      bind("Account", () => {
+        const initial = $("avatar").textContent;
+        openDialog("Account", `<label class="f">Display name</label><input id="ac-name" type="text" value="${escapeHtml($("avatar").dataset.name || "")}" placeholder="Your name">
+          <label class="f">Theme</label><select id="ac-theme"><option value="dark" ${document.body.classList.contains("dark") ? "selected" : ""}>Dark</option><option value="light" ${document.body.classList.contains("dark") ? "" : "selected"}>Light</option></select>`,
+          [{ label: "Cancel" }, { label: "Save", primary: true, run: (d) => {
+            const name = val(d, "#ac-name").trim();
+            $("avatar").dataset.name = name;
+            $("avatar").textContent = (name[0] || initial || "C").toUpperCase();
+            const dark = val(d, "#ac-theme") === "dark";
+            document.body.classList.toggle("dark", dark);
+            $("view-dark").classList.toggle("on", dark);
+          } }]);
+      });
+
+      $("mode-pill").addEventListener("click", (e) => {
+        const set = (m, label) => () => { setMode(m); $("mode-label").textContent = label; };
+        const reading = editor.contentEditable !== "true";
+        openMenu($("mode-pill"), [
+          { label: "Editing", on: !reading, run: set("print", "Editing") },
+          { label: "Viewing", on: reading, run: set("read", "Viewing") }
+        ]);
+      });
+
+      function shareDialog() {
+        const text = () => editor.innerText;
+        const html = () => editor.innerHTML.replace(/--push:\s*[^;"]*;?/g, "");
+        const name = () => ($("doc-name").value || "Document1");
+        const copy = (s, msg) => (navigator.clipboard ? navigator.clipboard.writeText(s).then(() => toast(msg), () => toast("Couldn't copy — your browser blocked it")) : toast("Clipboard isn't available here"));
+        const items = [
+          ["Copy as text", "Plain text, ready to paste anywhere", () => copy(text(), "Text copied")],
+          ["Copy as HTML", "Keeps headings, lists and formatting", () => copy(html(), "HTML copied")],
+          ["Download as HTML", "A file you can send or open in a browser", () => exportDocument("html")],
+          ["Download as Word (.doc)", "Opens in Word and other editors", () => exportDocument("docx")],
+          ["Download as text", "A plain .txt file", () => exportDocument("txt")],
+          ["Send by email", "Opens your mail app with the text", () => { location.href = "mailto:?subject=" + encodeURIComponent(name()) + "&body=" + encodeURIComponent(text().slice(0, 1800)); }]
+        ];
+        const dlg = openDialog("Share", items.map((it, i) => `<div class="row"><div class="grow"><b>${it[0]}</b><br><small>${it[1]}</small></div><button class="ow-btn sm" data-i="${i}">Go</button></div>`).join(""));
+        dlg.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) items[b.dataset.i][2](); });
+      }
+      $("share-pill").addEventListener("click", shareDialog);
+
+      $("catchup-pill").addEventListener("click", () => {
+        const last = versions[versions.length - 1];
+        if (!last) {
+          openDialog("Catch up", "<p>Catch up shows what changed since your last saved version, and you haven't saved one yet.</p>", [{ label: "Close" }, { label: "Save version now", primary: true, run: () => { saveVersion(); toast("Version saved"); } }]);
+          return;
+        }
+        const tmp = document.createElement("div");
+        tmp.innerHTML = last.html;
+        const lines = (root) => [...root.querySelectorAll("p,h1,h2,h3,li,blockquote")].map((e) => e.textContent.trim()).filter(Boolean);
+        const before = lines(tmp), after = lines(editor);
+        const count = (arr) => arr.reduce((m, s) => m.set(s, (m.get(s) || 0) + 1), new Map());
+        const cb = count(before), ca = count(after);
+        const added = after.filter((s) => (cb.get(s) || 0) < (ca.get(s) || 0) && (ca.set(s, ca.get(s) - 1), true));
+        const cb2 = count(before), ca2 = count(after);
+        const removed = before.filter((s) => (ca2.get(s) || 0) < (cb2.get(s) || 0) && (cb2.set(s, cb2.get(s) - 1), true));
+        const w = (a) => a.join(" ").split(/\s+/).filter(Boolean).length;
+        const list = (arr) => arr.slice(0, 6).map((s) => `<div class="row"><small>${escapeHtml(s.length > 130 ? s.slice(0, 130) + "…" : s)}</small></div>`).join("");
+        openDialog("Catch up", `<p>Since your version from <b>${escapeHtml(last.time)}</b>:</p>
+          <div class="score"><div><b>+${w(added)}</b><small class="m">words added</small></div><div><b>−${w(removed)}</b><small class="m">words removed</small></div><div><b>${added.length + removed.length}</b><small class="m">paragraphs changed</small></div></div>
+          ${added.length ? "<b>Added or edited</b>" + list(added) : ""}${removed.length ? "<p style='margin-bottom:0'><b>Removed or replaced</b></p>" + list(removed) : ""}
+          ${!added.length && !removed.length ? "<p>No changes since then.</p>" : ""}`,
+          [{ label: "Close" }, { label: "Save new version", primary: true, run: () => { saveVersion(); toast("Version saved"); } }], { wide: true });
+      });
+
+      function openFeedback() {
+        openDialog("Give feedback", `<label class="f">Type</label><select id="fb-type"><option>Suggestion</option><option>Problem</option><option>Compliment</option></select>
+          <label class="f">Your feedback</label><textarea id="fb-text" placeholder="Tell us what you think…"></textarea>`,
+          [{ label: "Cancel" }, { label: "Copy", run: (d) => { navigator.clipboard && navigator.clipboard.writeText(`[${val(d, "#fb-type")}] ${val(d, "#fb-text")}`); toast("Feedback copied"); } },
+           { label: "Send by email", primary: true, run: (d) => { if (!val(d, "#fb-text").trim()) { toast("Write something first"); return false; } location.href = "mailto:?subject=" + encodeURIComponent("OpenWriter feedback: " + val(d, "#fb-type")) + "&body=" + encodeURIComponent(val(d, "#fb-text")); } }]);
+      }
+      document.querySelectorAll(".statusbar .ghost").forEach((b) => { if (/Feedback/.test(b.textContent)) b.addEventListener("click", openFeedback); });
+
+      /* ---------- Command search (top bar) ---------- */
+      function openSearch() {
+        const cmds = [...document.querySelectorAll(".ribbon button[title], .menu-item")].map((b) => ({ b, name: (b.title || b.textContent).replace(/\s+/g, " ").trim() })).filter((c) => c.name && !c.b.disabled);
+        const seen = new Set();
+        const uniq = cmds.filter((c) => !seen.has(c.name) && seen.add(c.name));
+        const dlg = openDialog("Search tools", `<input id="cs-q" type="text" placeholder="Type a command, e.g. table, bold, margins…" autocomplete="off"><div id="cs-res" style="margin-top:8px"></div>`, [{ label: "Close" }]);
+        const draw = () => {
+          const q = val(dlg, "#cs-q").toLowerCase().trim();
+          const res = uniq.filter((c) => !q || c.name.toLowerCase().includes(q)).slice(0, 8);
+          dlg.querySelector("#cs-res").innerHTML = res.map((c, i) => `<button class="nav-item" data-c="${uniq.indexOf(c)}">${escapeHtml(c.name)}</button>`).join("") || "<small class='m'>No matching tools</small>";
+        };
+        const run = (i) => { dlg.close(); setTimeout(() => uniq[i].b.click(), 0); };
+        dlg.querySelector("#cs-q").addEventListener("input", draw);
+        dlg.querySelector("#cs-q").addEventListener("keydown", (e) => { if (e.key === "Enter") { const f = dlg.querySelector("[data-c]"); if (f) run(f.dataset.c); } });
+        dlg.addEventListener("click", (e) => { const b = e.target.closest("[data-c]"); if (b) run(b.dataset.c); });
+        draw();
+      }
+      $("search-box").addEventListener("click", openSearch);
+      $("search-box").addEventListener("keydown", (e) => { if (e.key === "Enter") openSearch(); });
+      document.addEventListener("keydown", (e) => { if (e.altKey && e.key.toLowerCase() === "q") { e.preventDefault(); openSearch(); } });
+
+      setZoom(1);
+      setMode("print");
+      $("view-dark").classList.toggle("on", document.body.classList.contains("dark"));
+      refresh();
+    })();
+  </script>
+</body>
+</html>

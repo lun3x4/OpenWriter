@@ -682,18 +682,7 @@
     .zoomcol .zl { display: flex; align-items: center; gap: 6px; font-size: 12px; }
     .select.zoomsel { width: 84px; }
 
-    .ruler {
-      display: none;
-      height: 18px;
-      margin: 0 12px 6px;
-      border-radius: var(--radius-sm);
-      background:
-        repeating-linear-gradient(to right, var(--text-muted) 0 1px, transparent 1px 96px) bottom / 100% 8px no-repeat,
-        repeating-linear-gradient(to right, var(--line-strong) 0 1px, transparent 1px 24px) bottom / 100% 4px no-repeat,
-        var(--bg-ribbon);
-    }
 
-    body.show-ruler .ruler { display: block; }
 
     /* ------------------------------------------------------------------
        Document canvas
@@ -1172,6 +1161,43 @@
       .selpop { display: none !important; }
       #page-bgs { display: none; }
     }
+
+    /* =====================  Phase 2 additions  ===================== */
+    /* "Coming soon" state for features that are not implemented yet */
+    [data-soon] { opacity: .55; cursor: default; }
+    .rbtn[data-soon]:hover { background: none; }
+    .rbtn[data-soon]::after { content: "Soon"; position: absolute; top: 1px; right: 1px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--accent); color: var(--accent-on); font: 700 8px/12px var(--ui-font); letter-spacing: .04em; text-transform: uppercase; }
+    .menu-item[data-soon]::after { content: none; }
+    .menu-item .soon-tag { margin-left: auto; padding: 0 7px; border-radius: 999px; background: var(--accent); color: var(--accent-on); font: 700 10px/16px var(--ui-font); }
+    .rbtn.dim { opacity: .45; }
+
+    /* Save indicator in the status bar */
+    .save-state { color: var(--text-muted); }
+    .save-state.err { color: #d13438; font-weight: 600; }
+
+    /* Find & Replace panel */
+    ::highlight(ow-find) { background-color: #ffe58a; color: #000; }
+    ::highlight(ow-find-current) { background-color: #ff9632; color: #000; }
+    .findbar { position: absolute; top: 10px; right: 26px; z-index: 30; display: none; flex-direction: column; gap: 6px; width: min(400px, calc(100% - 52px)); padding: 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--bg-ribbon); color: var(--text); box-shadow: 0 6px 22px rgba(0,0,0,.35); font: 13px var(--ui-font); }
+    .findbar.on { display: flex; }
+    .findbar:not(.replace) .fb-replace { display: none; }
+    .findbar .fb-row { display: flex; align-items: center; gap: 6px; }
+    .findbar input[type="text"] { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: transparent; color: var(--text); font: 13px var(--ui-font); }
+    .findbar .fb-count { min-width: 64px; color: var(--text-muted); font-size: 12px; text-align: right; }
+    .findbar .fb-opts { display: flex; gap: 16px; color: var(--text-muted); font-size: 12px; }
+    .findbar .fb-opts label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+
+    /* Dialog helpers */
+    .ow-dlg kbd { padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: 5px; background: rgba(128,128,128,.14); font: 600 12px var(--ui-font); white-space: nowrap; }
+    .ow-dlg ul.wn { margin: 6px 0; padding-left: 20px; }
+    .ow-dlg ul.wn li { margin: 6px 0; }
+    .comment-card .cc-actions { display: flex; gap: 6px; margin-top: 6px; }
+
+    @media print {
+      .findbar { display: none !important; }
+      /* A manual page break forces a new printed page; the dashed marker is hidden. */
+      #page .page-break { break-after: page; height: 0; margin: 0; padding: 0; border: 0; overflow: hidden; font-size: 0; color: transparent; }
+    }
   </style>
 </head>
 <body class="dark">
@@ -1242,14 +1268,7 @@
     <symbol id="i-find" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4"/><path d="M10 10l3.2 3.2"/></symbol>
     <symbol id="i-replace" viewBox="0 0 16 16"><path d="M3.5 5.2h8M9.2 2.8 11.8 5.2 9.2 7.6M12.5 10.8h-8M6.8 8.4 4.2 10.8 6.8 13.2"/></symbol>
     <symbol id="i-select" viewBox="0 0 16 16"><rect x="2.8" y="2.8" width="10.4" height="10.4" rx="1.5" stroke-dasharray="2.2 1.6"/></symbol>
-    <symbol id="i-mic" viewBox="0 0 16 16"><rect x="6" y="2.2" width="4" height="7.2" rx="2"/><path d="M4.2 8a3.8 3.8 0 0 0 7.6 0M8 11.8v2M6.2 13.8h3.6"/></symbol>
     <symbol id="i-shield" viewBox="0 0 16 16"><path d="M8 2.2 3.2 4.4v4.2c0 2.8 2.1 4.6 4.8 5.4 2.7-.8 4.8-2.6 4.8-5.4V4.4z"/><path d="M5.8 8.1l1.6 1.6 2.8-3.2"/></symbol>
-    <symbol id="i-apps" viewBox="0 0 16 16">
-      <rect x="2.4" y="2.4" width="4.6" height="4.6" rx="1.1"/>
-      <rect x="9" y="2.4" width="4.6" height="4.6" rx="1.1"/>
-      <rect x="2.4" y="9" width="4.6" height="4.6" rx="1.1"/>
-      <rect x="9" y="9" width="4.6" height="4.6" rx="1.1"/>
-    </symbol>
     <symbol id="i-table" viewBox="0 0 16 16"><rect x="2.5" y="2.8" width="11" height="10.4" rx="1.4"/><path d="M2.5 6.6h11M2.5 10.2h11M6.4 2.8v10.4M9.6 2.8v10.4"/></symbol>
     <symbol id="i-image" viewBox="0 0 16 16"><rect x="2.4" y="3.2" width="11.2" height="9.6" rx="1.6"/><circle cx="5.6" cy="6.4" r="1.1"/><path d="M3 11.4 6.2 8.2l2.1 2.1L11 7.4l2.6 3.2"/></symbol>
     <symbol id="i-shapes" viewBox="0 0 16 16"><rect x="2.4" y="2.4" width="6.2" height="6.2" rx="1.2"/><circle cx="11" cy="11" r="3.1"/></symbol>
@@ -1268,13 +1287,12 @@
     <symbol id="i-refresh" viewBox="0 0 16 16"><path d="M12.8 3.6A5.6 5.6 0 1 0 14 8.2"/><path d="M12.8 1.8v3.2h-3.2"/></symbol>
     <symbol id="i-spell" viewBox="0 0 16 16"><circle cx="6.6" cy="9.4" r="4"/><path d="M5 9.4l1.2 1.3 2.1-2.6M10.6 2.8l1.9 1.9-1.9 1.9"/></symbol>
     <symbol id="i-count" viewBox="0 0 16 16"><rect x="2.6" y="2.6" width="10.8" height="10.8" rx="1.6"/><path d="M5 6.2h6M5 8.4h6M5 10.6h3.6"/></symbol>
-    <symbol id="i-book" viewBox="0 0 16 16"><path d="M2.8 2.6h7.2l3.2 3.2v7.6H2.8z"/><path d="M10 2.6v3.2h3.2"/></symbol>
     <symbol id="i-track" viewBox="0 0 16 16"><path d="M2.5 8h11M9.2 4.4 13 8l-3.8 3.6"/></symbol>
     <symbol id="i-check" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.6"/><path d="M5.4 8.2 7.2 10l3.4-3.8"/></symbol>
     <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8.2" r="5.4"/><path d="M8 5.4v3l2.3 1.3"/></symbol>
     <symbol id="i-print" viewBox="0 0 16 16"><rect x="4.2" y="1.8" width="7.6" height="12.4" rx="1.4"/><path d="M6.2 5h3.6M6.2 7.4h3.6M6.2 9.8h3.6"/></symbol>
     <symbol id="i-read" viewBox="0 0 16 16"><path d="M8 3.2C5.6 2.2 3.2 2.7 2.3 3.6v8.8c.9-1 3.3-1.4 5.7-.4M8 3.2c2.4-1 4.8-.5 5.7.4v8.8c-.9-1-3.3-1.4-5.7-.4V3.2z"/></symbol>
-    <symbol id="i-focus" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.6"/><rect x="5.4" y="5.4" width="5.2" height="5.2" rx="1" class="fi"/></symbol>
+    <symbol id="i-hr" viewBox="0 0 16 16"><path d="M2 8h12"/><path d="M4 4.5h8M4 11.5h8" stroke-dasharray="1 2"/></symbol><symbol id="i-signature" viewBox="0 0 16 16"><path d="M2 12.5h12"/><path d="M3.5 9c1.4-3 2.4-5 3.2-5 .9 0 .3 3-.4 4.6 1-1.2 1.8-2 2.4-2 .7 0 .1 1.6.9 1.6.6 0 1-.6 1.6-1.4"/></symbol><symbol id="i-focus" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.6"/><rect x="5.4" y="5.4" width="5.2" height="5.2" rx="1" class="fi"/></symbol>
     <symbol id="i-moon" viewBox="0 0 16 16"><path d="M8.2 2.4a5.8 5.8 0 1 0 5.4 8.4A4.8 4.8 0 0 1 8.2 2.4z" class="fi"/></symbol>
     <symbol id="i-pane" viewBox="0 0 16 16"><rect x="2.4" y="2.4" width="6.8" height="11.2" rx="1.3"/><rect x="10.4" y="2.4" width="3.2" height="11.2" rx="1"/></symbol>
     <symbol id="i-nav" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.6"/><path d="M6.6 2.5v11"/></symbol>
@@ -1300,10 +1318,8 @@
     <symbol id="i-pageborders" viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1.4"/><rect x="5.2" y="4.2" width="5.6" height="7.6" rx="0.6" stroke-dasharray="1.4 1.2"/></symbol>
     <symbol id="i-pagecolor" viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1.4"/><path d="M8 5.2c1.5 1.8 2.2 2.9 2.2 3.7a2.2 2.2 0 0 1-4.4 0c0-.8.7-1.9 2.2-3.7z" class="ac"/></symbol>
     <symbol id="i-footnote" viewBox="0 0 16 16"><path d="M2.3 13l3.1-8h1l3.1 8M3.6 10.2h4.6"/><path d="M11.4 3.4v3.6M9.6 5.2h3.6" class="ac"/></symbol>
-    <symbol id="i-insights" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 13.6 13.6"/><path d="M7 5.2v.01M7 7v2" class="ac"/></symbol>
     <symbol id="i-citations" viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1.4"/><path d="M5.5 7.2h2v2.3h-2zM9 7.2h2v2.3H9zM5.5 9.5c0 1-.4 1.5-1 1.8M9 9.5c0 1-.4 1.5-1 1.8"/></symbol>
     <symbol id="i-reading" viewBox="0 0 16 16"><rect x="1.8" y="3" width="5.8" height="10" rx="1.2"/><rect x="8.4" y="3" width="5.8" height="10" rx="1.2"/></symbol>
-    <symbol id="i-immersive" viewBox="0 0 16 16"><rect x="1.8" y="3" width="5" height="10" rx="1.2"/><rect x="7.6" y="3" width="4" height="10" rx="1.2"/><path d="M13.2 6.4c.9 1 .9 2.2 0 3.2" class="ac"/></symbol>
     <symbol id="i-pct" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="2" class="ac"/><text x="8" y="10.4" font-size="6" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">100</text></symbol>
     <symbol id="i-ruler" viewBox="0 0 16 16"><rect x="1.8" y="5.5" width="12.4" height="5" rx="1"/><path d="M4.6 5.5v2M7 5.5v2.6M9.4 5.5v2M11.8 5.5v2.6"/></symbol>
     <symbol id="i-navpane" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.6" class="ac"/><path d="M6.6 2.5v11"/></symbol>
@@ -1314,7 +1330,6 @@
     <symbol id="i-feedback" viewBox="0 0 16 16"><path d="M2.4 3h7.2v5.2H5.4L3.4 10V8.2h-1z"/><path d="M11.4 6.6h2.2v4.6h-1v1.8l-1.9-1.8H8.4V9.8"/></symbol>
     <symbol id="i-keyboard" viewBox="0 0 16 16"><rect x="1.8" y="4" width="12.4" height="8" rx="1.6"/><path d="M4.6 7h.01M7 7h.01M9.4 7h.01M11.8 7h.01M5.2 9.8h5.6"/></symbol>
     <symbol id="i-bell" viewBox="0 0 16 16"><path d="M4.4 11V7.6a3.6 3.6 0 0 1 7.2 0V11l1.1 1.3H3.3z"/><path d="M6.8 14h2.4"/></symbol>
-    <symbol id="i-editor" viewBox="0 0 16 16"><path d="M2.4 13.6h4.2M3.6 11.2l.7-2.8 6.4-6.4 2.1 2.1-6.4 6.4z"/></symbol>
   </svg>
 
   <header class="topbar">
@@ -1334,7 +1349,7 @@
       </div>
     </div>
     <div class="topbar-right">
-    <button class="icon-btn" type="button" data-action="toggle-dark" title="Settings">
+    <button class="icon-btn" type="button" data-action="open-settings" title="Settings">
       <svg class="ic"><use href="#i-gear"/></svg>
     </button>
     <button class="avatar" type="button" title="Account" id="avatar">C</button>
@@ -1370,12 +1385,12 @@
       <button class="menu-item" type="button" data-action="new-doc">
         <svg class="ic"><use href="#i-file"/></svg> New
       </button>
-      <button class="menu-item" type="button" data-action="close-file-menu">
-        <svg class="ic"><use href="#i-folder"/></svg> Open
+      <button class="menu-item" type="button" data-action="open-file">
+        <svg class="ic"><use href="#i-folder"/></svg> Open…
       </button>
       <div class="menu-label">Save As</div>
-      <button class="menu-item" type="button" data-action="export" data-format="docx">
-        <svg class="ic"><use href="#i-file"/></svg> Word Document (.doc)
+      <button class="menu-item" type="button" data-soon="Word Document (.docx) export" aria-disabled="true">
+        <svg class="ic"><use href="#i-file"/></svg> Word Document (.docx) <span class="soon-tag">Coming soon</span>
       </button>
       <button class="menu-item" type="button" data-action="export" data-format="pdf">
         <svg class="ic"><use href="#i-file"/></svg> PDF
@@ -1393,7 +1408,7 @@
   <section class="ribbon on" id="ribbon-home">
     <div class="group">
       <div class="gbody">
-        <div class="col"><button class="rbtn" type="button" data-exec="undo" title="Undo"><svg class="ic "><use href="#i-undo"/></svg></button><button class="rbtn" type="button" data-exec="redo" title="Redo"><svg class="ic "><use href="#i-redo"/></svg></button></div>
+        <div class="col"><button class="rbtn" type="button" data-exec="undo" title="Undo (Ctrl+Z)"><svg class="ic "><use href="#i-undo"/></svg></button><button class="rbtn" type="button" data-exec="redo" title="Redo (Ctrl+Y)"><svg class="ic "><use href="#i-redo"/></svg></button></div>
       </div>
       
       <span class="caption">Undo</span>
@@ -1416,7 +1431,7 @@
     <div class="group">
       <div class="gbody">
         <div class="row"><button class="rbtn" type="button" data-exec="insertUnorderedList" title="Bullets"><svg class="ic "><use href="#i-bullets"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn" type="button" data-exec="insertOrderedList" title="Numbering"><svg class="ic "><use href="#i-numbers"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn" type="button"  title="Multilevel List"><svg class="ic "><use href="#i-multilevel"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn" type="button"  title="Checklist"><svg class="ic "><use href="#i-checklist"/></svg></button><button class="rbtn" type="button" data-exec="outdent" title="Decrease Indent"><svg class="ic "><use href="#i-indent"/></svg></button><button class="rbtn" type="button" data-exec="indent" title="Increase Indent"><svg class="ic "><use href="#i-outdent"/></svg></button><button class="rbtn on" type="button"  title="Left-to-Right"><svg class="ic "><use href="#i-ltr"/></svg></button><button class="rbtn" type="button"  title="Right-to-Left"><svg class="ic "><use href="#i-rtl"/></svg></button><button class="rbtn" type="button"  title="Show/Hide ¶"><svg class="ic "><use href="#i-pilcrow"/></svg></button></div>
-        <div class="row"><button class="rbtn" type="button" data-exec="justifyLeft" data-state="justifyLeft" title="Align Left (Ctrl+L)"><svg class="ic "><use href="#i-align-left"/></svg></button><button class="rbtn" type="button" data-exec="justifyCenter" data-state="justifyCenter" title="Center (Ctrl+E)"><svg class="ic "><use href="#i-align-center"/></svg></button><button class="rbtn" type="button" data-exec="justifyRight" data-state="justifyRight" title="Align Right (Ctrl+R)"><svg class="ic "><use href="#i-align-right"/></svg></button><button class="rbtn" type="button" data-exec="justifyFull" data-state="justifyFull" title="Justify (Ctrl+J)"><svg class="ic "><use href="#i-justify"/></svg></button><label class="rbtn selbtn" title="Line and Paragraph Spacing"><svg class="ic "><use href="#i-linespace"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg><select aria-label="Line spacing" data-action-change="line-height"><option value="1.15">1.0</option><option value="1.5" selected>1.5</option><option value="2">2.0</option></select></label><button class="rbtn" type="button"  title="Paragraph Spacing"><svg class="ic "><use href="#i-parindent"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn" type="button"  title="Borders"><svg class="ic "><use href="#i-borders"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><label class="rbtn colorbtn" title="Shading"><svg class="ic "><use href="#i-shade"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg><span class="bar" style="background:#ffffff"></span><input type="color" value="#ffffff" data-action-change="shade"></label></div>
+        <div class="row"><button class="rbtn" type="button" data-exec="justifyLeft" data-state="justifyLeft" title="Align Left (Ctrl+Shift+L)"><svg class="ic "><use href="#i-align-left"/></svg></button><button class="rbtn" type="button" data-exec="justifyCenter" data-state="justifyCenter" title="Center (Ctrl+Shift+E)"><svg class="ic "><use href="#i-align-center"/></svg></button><button class="rbtn" type="button" data-exec="justifyRight" data-state="justifyRight" title="Align Right (Ctrl+Shift+R)"><svg class="ic "><use href="#i-align-right"/></svg></button><button class="rbtn" type="button" data-exec="justifyFull" data-state="justifyFull" title="Justify (Ctrl+Shift+J)"><svg class="ic "><use href="#i-justify"/></svg></button><label class="rbtn selbtn" title="Line and Paragraph Spacing"><svg class="ic "><use href="#i-linespace"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg><select aria-label="Line spacing" data-action-change="line-height"><option value="1">1.0</option><option value="1.15">1.15</option><option value="1.5" selected>1.5</option><option value="2">2.0</option></select></label><button class="rbtn" type="button"  title="Paragraph Spacing"><svg class="ic "><use href="#i-parindent"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn" type="button"  title="Borders"><svg class="ic "><use href="#i-borders"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg></button><label class="rbtn colorbtn" title="Shading"><svg class="ic "><use href="#i-shade"/></svg><svg class="ic chev"><use href="#i-chevron"/></svg><span class="bar" style="background:#ffffff"></span><input type="color" value="#ffffff" data-action-change="shade"></label></div>
       </div>
       <button class="launcher" type="button" title="Paragraph options"><svg class="ic ic-sm"><use href="#i-expand"/></svg></button>
       <span class="caption">Paragraph</span>
@@ -1444,27 +1459,6 @@
       
       <span class="caption">Editing</span>
     </div>
-    <div class="group">
-      <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button"  title="Dictate"><svg class="ic ic-lg blue"><use href="#i-mic"/></svg><span class="lbl">Dictate</span></button></div>
-      </div>
-      
-      <span class="caption">Voice</span>
-    </div>
-    <div class="group">
-      <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button"  title="Editor"><svg class="ic ic-lg blue"><use href="#i-editor"/></svg><span class="lbl">Editor</span></button></div>
-      </div>
-      
-      <span class="caption">Proofing</span>
-    </div>
-    <div class="group">
-      <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button"  title="Add-ins"><svg class="ic ic-lg red"><use href="#i-apps"/></svg><span class="lbl">Add-ins</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
-      </div>
-      
-      <span class="caption">Add-ins</span>
-    </div>
     <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
   </section>
 
@@ -1486,7 +1480,7 @@
     </div>
     <div class="group">
       <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button" data-action="pick-image" title="Picture"><svg class="ic ic-lg "><use href="#i-image"/></svg><span class="lbl">Picture</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><input type="file" id="image-input" accept="image/*" hidden><button class="rbtn big" type="button" data-action="insert-shape" title="Drawing"><svg class="ic ic-lg "><use href="#i-drawing"/></svg><span class="lbl">Drawing</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+        <div class="row"><button class="rbtn big" type="button" data-action="pick-image" title="Picture"><svg class="ic ic-lg "><use href="#i-image"/></svg><span class="lbl">Picture</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><input type="file" id="image-input" accept="image/*" hidden><button class="rbtn big" type="button" data-soon="Drawing" aria-disabled="true" title="Drawing (coming soon)"><svg class="ic ic-lg "><use href="#i-drawing"/></svg><span class="lbl">Drawing</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
       </div>
       
       <span class="caption">Illustrations</span>
@@ -1528,7 +1522,7 @@
     </div>
     <div class="group">
       <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button" data-action="toggle-header-footer" title="Header &amp; Footer"><svg class="ic ic-lg "><use href="#i-header"/></svg><span class="lbl">Header &amp;<br>Footer</span></button><button class="rbtn big" type="button" data-action="insert-page-number" title="Page Numbers"><svg class="ic ic-lg "><use href="#i-page-num"/></svg><span class="lbl">Page<br>Numbers <svg class="ic chev"><use href="#i-chevron"/></svg></span></button></div>
+        <div class="row"><button class="rbtn big" type="button" data-action="toggle-header-footer" title="Header &amp; Footer"><svg class="ic ic-lg "><use href="#i-header"/></svg><span class="lbl">Header &amp;<br>Footer</span></button><button class="rbtn big" type="button" data-soon="Page Numbers" aria-disabled="true" title="Page Numbers (coming soon)"><svg class="ic ic-lg "><use href="#i-page-num"/></svg><span class="lbl">Page<br>Numbers <svg class="ic chev"><use href="#i-chevron"/></svg></span></button></div>
       </div>
       
       <span class="caption">Header &amp; Footer</span>
@@ -1547,6 +1541,13 @@
       
       <span class="caption">Emojis</span>
     </div>
+    <div class="group">
+      <div class="gbody">
+        <div class="row"><button class="rbtn big" type="button" data-action="insert-datetime" title="Date &amp; Time"><svg class="ic ic-lg "><use href="#i-clock"/></svg><span class="lbl">Date &amp;<br>Time</span></button><button class="rbtn big" type="button" data-action="insert-lorem" title="Placeholder Text"><svg class="ic ic-lg "><use href="#i-lines"/></svg><span class="lbl">Placeholder<br>Text</span></button><button class="rbtn big" type="button" data-action="insert-hr" title="Divider"><svg class="ic ic-lg "><use href="#i-hr"/></svg><span class="lbl">Divider</span></button><button class="rbtn big" type="button" data-action="insert-signature" title="Signature Line"><svg class="ic ic-lg "><use href="#i-signature"/></svg><span class="lbl">Signature<br>Line</span></button></div>
+      </div>
+
+      <span class="caption">Quick Insert</span>
+    </div>
     <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
   </section>
 
@@ -1554,7 +1555,7 @@
   <section class="ribbon" id="ribbon-layout">
     <div class="group">
       <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button" data-action="set-margins" title="Margins"><svg class="ic ic-lg "><use href="#i-margins"/></svg><span class="lbl">Margins</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button" data-action="toggle-orientation" title="Orientation"><svg class="ic ic-lg "><use href="#i-orient"/></svg><span class="lbl">Orientation</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button"  title="Size"><svg class="ic ic-lg "><use href="#i-size"/></svg><span class="lbl">Size</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button"  disabled title="Columns"><svg class="ic ic-lg "><use href="#i-col2"/></svg><span class="lbl">Columns</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button" data-action="insert-break" title="Breaks"><svg class="ic ic-lg "><use href="#i-break"/></svg><span class="lbl">Breaks</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button"  disabled title="Line Numbers"><svg class="ic ic-lg "><use href="#i-linenums"/></svg><span class="lbl">Line<br>Numbers</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
+        <div class="row"><button class="rbtn big" type="button" data-action="set-margins" title="Margins"><svg class="ic ic-lg "><use href="#i-margins"/></svg><span class="lbl">Margins</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button" data-action="toggle-orientation" title="Orientation"><svg class="ic ic-lg "><use href="#i-orient"/></svg><span class="lbl">Orientation</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button"  title="Size"><svg class="ic ic-lg "><use href="#i-size"/></svg><span class="lbl">Size</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button"  data-soon="Columns" aria-disabled="true" title="Columns (coming soon)"><svg class="ic ic-lg "><use href="#i-col2"/></svg><span class="lbl">Columns</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button" data-action="insert-break" title="Breaks"><svg class="ic ic-lg "><use href="#i-break"/></svg><span class="lbl">Breaks</span><svg class="ic chev"><use href="#i-chevron"/></svg></button><button class="rbtn big" type="button"  data-soon="Line Numbers" aria-disabled="true" title="Line Numbers (coming soon)"><svg class="ic ic-lg "><use href="#i-linenums"/></svg><span class="lbl">Line<br>Numbers</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
       </div>
       
       <span class="caption">Page Setup</span>
@@ -1595,13 +1596,6 @@
     </div>
     <div class="group">
       <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button" data-action="find" title="Search"><svg class="ic ic-lg blue"><use href="#i-insights"/></svg><span class="lbl">Search</span></button></div>
-      </div>
-      
-      <span class="caption">Insights</span>
-    </div>
-    <div class="group">
-      <div class="gbody">
         <div class="row"><button class="rbtn big" type="button"  title="Citations"><svg class="ic ic-lg red"><use href="#i-citations"/></svg><span class="lbl">Citations</span><svg class="ic chev"><use href="#i-chevron"/></svg></button></div>
       </div>
       
@@ -1614,7 +1608,7 @@
   <section class="ribbon" id="ribbon-review">
     <div class="group">
       <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button" id="spell-btn" data-action="toggle-spellcheck" title="Spelling &amp; Grammar"><svg class="ic ic-lg "><use href="#i-spell"/></svg><span class="lbl">Spelling &amp;<br>Grammar</span></button><button class="rbtn big" type="button" data-action="word-count" title="Word Count"><svg class="ic ic-lg "><use href="#i-count"/></svg><span class="lbl">Word<br>Count</span></button><button class="rbtn big" type="button" data-action="thesaurus" title="Thesaurus"><svg class="ic ic-lg "><use href="#i-book"/></svg><span class="lbl">Thesaurus</span></button></div>
+        <div class="row"><button class="rbtn big" type="button" id="spell-btn" data-action="toggle-spellcheck" title="Spellcheck"><svg class="ic ic-lg "><use href="#i-spell"/></svg><span class="lbl">Spell<br>check</span></button><button class="rbtn big" type="button" data-action="word-count" title="Word Count"><svg class="ic ic-lg "><use href="#i-count"/></svg><span class="lbl">Word<br>Count</span></button></div>
       </div>
       
       <span class="caption">Proofing</span>
@@ -1628,7 +1622,7 @@
     </div>
     <div class="group">
       <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button"  disabled title="Track Changes"><svg class="ic ic-lg "><use href="#i-track"/></svg><span class="lbl">Track<br>Changes</span></button><button class="rbtn big" type="button"  disabled title="Accept"><svg class="ic ic-lg "><use href="#i-check"/></svg><span class="lbl">Accept</span></button></div>
+        <div class="row"><button class="rbtn big" type="button"  data-soon="Track Changes" aria-disabled="true" title="Track Changes (coming soon)"><svg class="ic ic-lg "><use href="#i-track"/></svg><span class="lbl">Track<br>Changes</span></button><button class="rbtn big" type="button"  data-soon="Accept / Reject" aria-disabled="true" title="Accept (coming soon)"><svg class="ic ic-lg "><use href="#i-check"/></svg><span class="lbl">Accept</span></button></div>
       </div>
       
       <span class="caption">Tracking</span>
@@ -1647,7 +1641,7 @@
   <section class="ribbon" id="ribbon-view">
     <div class="group">
       <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button" id="view-print" data-action="set-mode" data-mode="print" title="Separate Pages"><svg class="ic ic-lg "><use href="#i-file"/></svg><span class="lbl">Separate<br>Pages</span></button><button class="rbtn big" type="button" id="view-read" data-action="set-mode" data-mode="read" title="Reading View"><svg class="ic ic-lg "><use href="#i-reading"/></svg><span class="lbl">Reading<br>View</span></button><button class="rbtn big" type="button" id="view-focus" data-action="set-mode" data-mode="focus" title="Immersive Reader"><svg class="ic ic-lg "><use href="#i-immersive"/></svg><span class="lbl">Immersive<br>Reader</span></button></div>
+        <div class="row"><button class="rbtn big" type="button" id="view-print" data-action="set-mode" data-mode="print" title="Separate Pages"><svg class="ic ic-lg "><use href="#i-file"/></svg><span class="lbl">Separate<br>Pages</span></button><button class="rbtn big" type="button" id="view-read" data-action="set-mode" data-mode="read" title="Reading View"><svg class="ic ic-lg "><use href="#i-reading"/></svg><span class="lbl">Reading<br>View</span></button><button class="rbtn big" type="button" id="view-focus" data-action="set-mode" data-mode="focus" title="Focus Mode"><svg class="ic ic-lg "><use href="#i-focus"/></svg><span class="lbl">Focus<br>Mode</span></button></div>
       </div>
       
       <span class="caption">Document Views</span>
@@ -1661,7 +1655,7 @@
     </div>
     <div class="group">
       <div class="gbody">
-        <div class="row"><button class="rbtn big" type="button" data-action="toggle-ruler" title="Ruler"><svg class="ic ic-lg "><use href="#i-ruler"/></svg><span class="lbl">Ruler</span></button><button class="rbtn big" type="button"  title="Navigation"><svg class="ic ic-lg "><use href="#i-navpane"/></svg><span class="lbl">Navigation</span></button><button class="rbtn big" type="button" data-action="toggle-header-footer" title="Header &amp; Footer"><svg class="ic ic-lg blue"><use href="#i-header"/></svg><span class="lbl">Header &amp;<br>Footer</span></button><button class="rbtn big" type="button"  disabled title="Footnotes"><svg class="ic ic-lg "><use href="#i-footnote"/></svg><span class="lbl">Footnotes</span></button><button class="rbtn big" type="button"  disabled title="Endnotes"><svg class="ic ic-lg "><use href="#i-file"/></svg><span class="lbl">Endnotes</span></button></div>
+        <div class="row"><button class="rbtn big" type="button" data-soon="Ruler" aria-disabled="true" title="Ruler (coming soon)"><svg class="ic ic-lg "><use href="#i-ruler"/></svg><span class="lbl">Ruler</span></button><button class="rbtn big" type="button"  title="Navigation"><svg class="ic ic-lg "><use href="#i-navpane"/></svg><span class="lbl">Navigation</span></button><button class="rbtn big" type="button" data-action="toggle-header-footer" title="Header &amp; Footer"><svg class="ic ic-lg blue"><use href="#i-header"/></svg><span class="lbl">Header &amp;<br>Footer</span></button><button class="rbtn big" type="button"  data-soon="Show Footnotes" aria-disabled="true" title="Footnotes (coming soon)"><svg class="ic ic-lg "><use href="#i-footnote"/></svg><span class="lbl">Footnotes</span></button><button class="rbtn big" type="button"  data-soon="Show Endnotes" aria-disabled="true" title="Endnotes (coming soon)"><svg class="ic ic-lg "><use href="#i-file"/></svg><span class="lbl">Endnotes</span></button></div>
       </div>
       
       <span class="caption">Show</span>
@@ -1688,9 +1682,26 @@
     <button class="ribbon-toggle" type="button" data-action="toggle-ribbon" title="Collapse the Ribbon"><svg class="ic ic-sm"><use href="#i-chevron"/></svg></button>
   </section>
 
-  <div class="ruler" id="ruler"></div>
 
   <div class="workspace">
+    <div class="findbar" id="findbar" role="search" aria-label="Find and replace">
+      <div class="fb-row">
+        <input type="text" id="fb-q" placeholder="Find" aria-label="Find" autocomplete="off">
+        <span class="fb-count" id="fb-count" aria-live="polite"></span>
+        <button class="ow-btn sm" type="button" data-fb="prev" aria-label="Previous match" title="Previous (Shift+Enter)">&uarr;</button>
+        <button class="ow-btn sm" type="button" data-fb="next" aria-label="Next match" title="Next (Enter)">&darr;</button>
+        <button class="ow-btn sm" type="button" data-fb="close" aria-label="Close find" title="Close (Esc)">&times;</button>
+      </div>
+      <div class="fb-row fb-replace">
+        <input type="text" id="fb-r" placeholder="Replace with" aria-label="Replace with" autocomplete="off">
+        <button class="ow-btn sm" type="button" data-fb="replace">Replace</button>
+        <button class="ow-btn sm" type="button" data-fb="all">Replace all</button>
+      </div>
+      <div class="fb-opts">
+        <label><input type="checkbox" id="fb-case"> Match case</label>
+        <label><input type="checkbox" id="fb-word"> Whole word</label>
+      </div>
+    </div>
     <div class="nav-toggle">
       <button type="button" title="Navigation pane" data-action="toggle-comments">
         <svg class="ic"><use href="#i-nav"/></svg>
@@ -1717,10 +1728,10 @@
   <footer class="statusbar">
     <span id="page-label">Page 1 of 1</span>
     <span id="word-label">0 words</span>
-    <span>English (U.S.)</span>
+    <span id="save-state" class="save-state" role="status" aria-live="polite">Autosave on</span>
     <button class="ghost" type="button" data-action="toggle-spellcheck">
       <svg class="ic ic-md"><use href="#i-check"/></svg>
-      Editor Suggestions: Showing
+      <span id="spell-label">Spellcheck: On</span>
     </button>
     <span class="spacer"></span>
     <div class="view-btns">
@@ -1738,7 +1749,7 @@
     <input type="range" id="zoom-range" min="50" max="200" value="100">
     <button class="zoom-btn" type="button" data-action="nudge-zoom" data-delta="10">+</button>
     <span class="zoom-label" id="zoom-label">100%</span>
-    <button class="ghost" type="button">Give Feedback to OpenWriter</button>
+    <button class="ghost" type="button" data-action="feedback">Give Feedback to OpenWriter</button>
   </footer>
 
   <input type="file" id="open-input" accept=".html,.htm,.txt,.md" hidden>
@@ -1773,12 +1784,12 @@
       const zoomLabel = $("zoom-label");
 
       let savedRange = null;
-      let comments = [];
       let versions = [];
 
       const selection = () => window.getSelection();
 
       function restoreSelection() {
+        UndoStack.flush();                    /* pending typing becomes its own undo step */
         editor.focus();
         if (!savedRange) return;
         const sel = selection();
@@ -1795,15 +1806,24 @@
         }[char]));
       }
 
+      /* Re-read the live selection after a command. execCommand rewrites the DOM, so a
+         range stored before it would be stale for the next command in a chain. */
+      function rememberSelection() {
+        const sel = selection();
+        if (sel.rangeCount && editor.contains(sel.anchorNode)) savedRange = sel.getRangeAt(0).cloneRange();
+      }
+
       function exec(command, value) {
         restoreSelection();
         document.execCommand(command, false, value ?? null);
+        rememberSelection();
         refresh();
       }
 
       function insertHtml(html) {
         restoreSelection();
         document.execCommand("insertHTML", false, html);
+        rememberSelection();
         refresh();
       }
 
@@ -1818,12 +1838,23 @@
         fontSizeInput.value = size;
         restoreSelection();
         document.execCommand("fontSize", false, "7");
+        const spans = [];
         editor.querySelectorAll('font[size="7"]').forEach((font) => {
           const span = document.createElement("span");
           span.style.fontSize = size + "pt";
           span.innerHTML = font.innerHTML;
           font.replaceWith(span);
+          spans.push(span);
         });
+        if (spans.length) {                      /* keep the resized text selected */
+          const range = document.createRange();
+          range.setStartBefore(spans[0]);
+          range.setEndAfter(spans[spans.length - 1]);
+          const sel = selection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+        rememberSelection();
         refresh();
       }
 
@@ -1831,8 +1862,13 @@
         setFontSize((Number(fontSizeInput.value) || 12) + delta);
       }
 
+      /* Document text without the visible "Page Break" marker labels. */
+      function docText() {
+        return editor.innerText.replace(/^Page Break$/gm, "");
+      }
+
       function wordCount() {
-        const text = editor.innerText.trim();
+        const text = docText().trim();
         return text ? text.split(/\s+/).length : 0;
       }
 
@@ -1868,19 +1904,25 @@
         const footerH = footer && footer.offsetParent ? footer.offsetHeight + 12 : 0;
         const usable = PAGE_H - margin * 2 - footerH;
 
+        let breakPage = -1;                       /* page index holding a pending manual break */
         units.forEach((el) => {
-          if (el.classList.contains("page-break") || el.offsetParent === null) return;
+          if (el.offsetParent === null) return;
           const top = el.getBoundingClientRect().top - sheet.getBoundingClientRect().top;
+          if (el.classList.contains("page-break")) { breakPage = Math.max(0, Math.floor(top / PAGE_STEP)); return; }
           const height = el.offsetHeight;
           const k = Math.floor(top / PAGE_STEP);
           const pageTop = k * PAGE_STEP + margin;
           const limit = k * PAGE_STEP + PAGE_H - margin - footerH;
           let push = 0;
-          if (height <= usable && top + height > limit) push = (k + 1) * PAGE_STEP + margin - top;
+          if (breakPage >= 0) {
+            /* content after a page break starts at the top of the next page */
+            const target = (breakPage + 1) * PAGE_STEP + margin;
+            if (top < target) push = target - top;
+            breakPage = -1;
+          } else if (height <= usable && top + height > limit) push = (k + 1) * PAGE_STEP + margin - top;
           else if (k > 0 && top < pageTop) push = pageTop - top;
           if (push > 0.5) el.style.setProperty("--push", push + "px");
         });
-
         const natural = sheet.offsetHeight;
         pagesTotal = Math.max(1, Math.ceil((natural + PAGE_GAP) / PAGE_STEP));
         sheet.style.minHeight = pagesTotal * PAGE_STEP - PAGE_GAP + "px";
@@ -1916,21 +1958,21 @@
       function refresh(light) {
         $("word-label").textContent = wordCount().toLocaleString() + " words";
         updatePageLabel();
-        if (light !== true) schedulePaginate();
+        if (light !== true) { schedulePaginate(); UndoStack.commit(); }
         document.querySelectorAll("[data-state]").forEach((button) => {
           button.classList.toggle("on", document.queryCommandState(button.dataset.state));
         });
       }
 
       let navMode = false;
+      /* Comments are stored on the highlighted text itself (data-comment), so
+         they are saved, exported and undone together with the document. */
       function renderComments() {
-        if (navMode) return renderNav();
+        if (navMode) { renderNav(); return; }
         document.querySelector(".sidebar-head").textContent = "Comments";
-        const list = $("comments-list");
-        list.innerHTML = comments.length
-          ? comments.map((item) => (
-              `<div class="comment-card"><b>Comment [${item.id}]</b><br>"${escapeHtml(item.quote.slice(0, 40))}"<br>${escapeHtml(item.text)}</div>`
-            )).join("")
+        const marks = [...editor.querySelectorAll(".comment-mark")];
+        $("comments-list").innerHTML = marks.length
+          ? marks.map((m, i) => `<div class="comment-card"><b>Comment ${i + 1}</b><br>"${escapeHtml(m.textContent.slice(0, 40))}"<br>${escapeHtml(m.dataset.comment || "")}<div class="cc-actions"><button class="ow-btn sm" type="button" data-go-comment="${i}">Go to</button><button class="ow-btn sm" type="button" data-del-comment="${i}">Delete</button></div></div>`).join("")
           : "<small>No comments in this document.</small>";
       }
 
@@ -1939,35 +1981,30 @@
       }
 
       function newDocument() {
-        if (!confirm("Start a new blank document? Unsaved changes will be lost.")) return;
+        if (!confirm("Start a new blank document? The current text is kept in Version History.")) return;
+        if (wordCount() > 0) saveVersion("Before new document", true);
         editor.innerHTML = "<p><br></p>";
+        savedRange = null;
+        sheet.querySelector(".header").innerHTML = DEFAULT_HEADER;
+        sheet.querySelector(".footer").innerHTML = DEFAULT_FOOTER;
         $("doc-name").value = "Document1";
-        closeFileMenu();
+        document.title = "Document1 - OpenWriter";
+        UndoStack.reset();
         refresh();
+        renderComments();
+        Autosave.schedule();
       }
 
       function exportDocument(format) {
         closeFileMenu();
-        const name = ($("doc-name").value || "Document1").replace(/[^\w\- ]/g, "");
-        if (format === "pdf") {
-          window.print();
-          return;
-        }
-
-        let blob;
-        let extension = format;
+        const name = baseName();
+        if (format === "pdf") { window.print(); return; }
         if (format === "txt") {
-          blob = new Blob([editor.innerText], { type: "text/plain" });
+          triggerDownload(new Blob([docText()], { type: "text/plain;charset=utf-8" }), name + ".txt");
         } else {
-          const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(name)}</title></head><body>${editor.innerHTML.replace(/--push:\s*[^;"]*;?/g, "")}</body></html>`;
-          blob = new Blob([html], { type: format === "docx" ? "application/msword" : "text/html" });
-          extension = format === "docx" ? "doc" : "html";
+          const html = `<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(name)}</title><style>${EXPORT_CSS}</style></head><body>\n${serializeEditor()}\n</body></html>`;
+          triggerDownload(new Blob([html], { type: "text/html;charset=utf-8" }), name + ".html");
         }
-
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = name + "." + extension;
-        link.click();
       }
 
       function insertTable() {
@@ -1991,17 +2028,6 @@
         if (text) insertHtml(`<span class="eq" contenteditable="false">${escapeHtml(text)}</span>&nbsp;`);
       }
 
-      function insertChart() {
-        const labels = (prompt("Category names, comma separated", "Q1,Q2,Q3,Q4") || "").split(",");
-        const values = (prompt("Values, comma separated", "12,18,9,22") || "").split(",").map(Number);
-        if (!labels.length || values.some(Number.isNaN)) return;
-        const max = Math.max(...values) || 1;
-        const bars = labels.map((label, index) => (
-          `<div><i style="height:${values[index] / max * 130}px"></i>${escapeHtml(label.trim())}</div>`
-        )).join("");
-        insertHtml(`<div class="chart" contenteditable="false">${bars}</div><p><br></p>`);
-      }
-
       function insertToc() {
         const old = editor.querySelector(".toc");
         if (old) old.remove();
@@ -2015,74 +2041,66 @@
       }
 
       function addComment() {
-        const text = prompt("Comment");
+        const text = prompt("Comment:");
         if (!text) return;
         restoreSelection();
-        const range = savedRange;
-        if (!range || range.collapsed) {
-          alert("Select some text first.");
-          return;
-        }
+        const sel = selection();
+        if (!sel.rangeCount || sel.isCollapsed) { toast("Select some text first, then add a comment"); return; }
         const mark = document.createElement("span");
         mark.className = "comment-mark";
-        try {
-          range.surroundContents(mark);
-        } catch (error) {
-          alert("Select text within one paragraph.");
-          return;
-        }
-        comments.push({ id: comments.length + 1, text, quote: mark.textContent });
-        renderComments();
+        mark.dataset.comment = text;
+        try { sel.getRangeAt(0).surroundContents(mark); }
+        catch (error) { toast("Select text within a single paragraph to comment"); return; }
         document.body.classList.add("show-comments");
+        navMode = false;
         refresh();
+        renderComments();
       }
 
       function toggleSpellcheck() {
         editor.spellcheck = !editor.spellcheck;
         $("spell-btn").classList.toggle("on", editor.spellcheck);
+        $("spell-label").textContent = "Spellcheck: " + (editor.spellcheck ? "On" : "Off");
+        editor.blur();
         editor.focus();
       }
 
-      function openThesaurus() {
-        const word = selection().toString().trim() || prompt("Look up a word");
-        if (word) window.open("https://www.thesaurus.com/browse/" + encodeURIComponent(word), "_blank");
+      /* ---------- Versions (stored with the document) ---------- */
+      function saveVersion(label, silent) {
+        versions.push({ time: new Date().toLocaleString(), label: typeof label === "string" ? label : "", html: serializeEditor() });
+        if (versions.length > 20) versions.shift();
+        Autosave.schedule();
+        if (!silent) toast("Version saved");
       }
 
-      function findText() {
-        const query = prompt("Find");
-        if (!query) return;
-        const found = window.find ? window.find(query) : false;
-        if (!found) alert("No matches found.");
-      }
-
-      function replaceText() {
-        const query = prompt("Find");
-        if (!query) return;
-        const replacement = prompt("Replace with", "") || "";
-        editor.innerHTML = editor.innerHTML.split(query).join(escapeHtml(replacement));
-        refresh();
-      }
-
-      function saveVersion() {
-        versions.push({ time: new Date().toLocaleTimeString(), html: editor.innerHTML });
-      }
-
-      function restoreVersion() {
-        if (!versions.length) return alert("No saved versions yet.");
-        const index = Number(prompt(versions.map((item, i) => i + ": " + item.time).join("\n"), versions.length - 1));
-        if (versions[index]) {
-          editor.innerHTML = versions[index].html;
+      function openVersions() {
+        if (!versions.length) { toast("No saved versions yet. Use Save Version first."); return; }
+        const rows = versions.map((v, i) => ({ v, i })).reverse();
+        const dlg = openDialog("Version history",
+          rows.map(({ v, i }) => `<div class="row"><div class="grow"><b>${escapeHtml(v.label || "Saved version")}</b><br><small>${escapeHtml(v.time)}</small></div><button class="ow-btn sm" type="button" data-restore="${i}">Restore</button></div>`).join("") +
+          `<p><small class="m">Restoring replaces the current text. You can undo it with Ctrl+Z.</small></p>`);
+        dlg.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-restore]");
+          const version = button && versions[button.dataset.restore];
+          if (!version) return;
+          dlg.close();
+          editor.innerHTML = sanitizeHtml(version.html) || "<p><br></p>";
+          savedRange = null;
           refresh();
-        }
+          renderComments();
+          toast("Version restored. Press Ctrl+Z to undo.");
+        });
       }
 
       function showWordCount() {
-        alert(
-          `Words: ${wordCount()}\n` +
-          `Characters (no spaces): ${editor.innerText.replace(/\s/g, "").length}\n` +
-          `Paragraphs: ${editor.querySelectorAll("p,h1,h2,h3,li").length}\n` +
-          `Pages: ${pageCount()}`
-        );
+        const text = docText();
+        const words = wordCount();
+        const chars = text.replace(/\n/g, "").length;
+        const noSpaces = text.replace(/\s/g, "").length;
+        const paragraphs = text.split(/\n+/).filter((p) => p.trim()).length;
+        openDialog("Word count",
+          `<div class="score"><div><b>${words}</b>Words</div><div><b>${paragraphs}</b>Paragraphs</div><div><b>${$("page-label").textContent.replace(/^Page \d+ of /, "")}</b>Pages</div></div>` +
+          `<div class="row"><div class="grow">Characters (with spaces)</div><b>${chars}</b></div><div class="row"><div class="grow">Characters (no spaces)</div><b>${noSpaces}</b></div>`);
       }
 
       function setMode(mode) {
@@ -2090,6 +2108,8 @@
         editor.contentEditable = mode !== "read" ? "true" : "false";
         $("view-read").classList.toggle("on", mode === "read");
         $("view-focus").classList.toggle("on", mode === "focus");
+        const modeLabel = $("mode-label");
+        if (modeLabel) modeLabel.textContent = mode === "read" ? "Viewing" : mode === "focus" ? "Focus" : "Editing";
         if (mode === "focus") document.body.classList.add("focus-mode");
       }
 
@@ -2139,11 +2159,10 @@
           input.value = formatField(input, next);
           input.dispatchEvent(new Event("change", { bubbles: true }));
         },
-        "page-border": () => sheet.classList.toggle("bordered"),
+        "page-border": () => { sheet.classList.toggle("bordered"); Autosave.schedule(); },
         "page-color": () => $("page-color-input").click(),
         "switch-bg": () => document.body.classList.toggle("page-light"),
         "zoom-100": () => setZoom(1),
-        "toggle-ruler": () => document.body.classList.toggle("show-ruler"),
         "insert-symbol": () => {
           const symbol = prompt("Symbol", "\u00A9");
           if (symbol) insertHtml(escapeHtml(symbol));
@@ -2156,53 +2175,58 @@
           const text = prompt(button.dataset.kind + " text");
           if (!text) return;
           const count = editor.querySelectorAll(".note").length + 1;
-          insertHtml(`<sup>${count}</sup>`);
-          editor.insertAdjacentHTML("beforeend",
-            `<p class="note" data-kind="${button.dataset.kind}" contenteditable="false"><sup>${count}</sup> ${escapeHtml(text)}</p>`);
-          refresh();
+          UndoStack.batch(() => {
+            insertHtml(`<sup>${count}</sup>`);
+            editor.insertAdjacentHTML("beforeend",
+              `<p class="note" data-kind="${button.dataset.kind}" contenteditable="false"><sup>${count}</sup> ${escapeHtml(text)}</p>`);
+            refresh();
+          });
         },
-        "help": () => window.open("https://support.microsoft.com/word", "_blank"),
-        "support": () => window.open("https://support.microsoft.com/contactus", "_blank"),
-        "feedback": () => openFeedback(),
-        "shortcuts": () => alert("Ctrl+B  Bold\nCtrl+I  Italic\nCtrl+U  Underline\nCtrl+Z  Undo\nCtrl+Y  Redo\nCtrl+L / E / R / J  Align left / center / right / justify"),
-        "whats-new": () => alert("OpenWriter: detached ribbons, dark mode, and more."),
+        "help": () => window.open(GITHUB_URL, "_blank", "noopener"),
+        "support": openSupport,
+        "feedback": openFeedback,
+        "shortcuts": openShortcuts,
+        "whats-new": openWhatsNew,
         "toggle-file-menu": () => fileMenu.classList.toggle("on"),
         "close-file-menu": closeFileMenu,
-        "toggle-dark": () => {
-          document.body.classList.toggle("dark");
-          $("view-dark").classList.toggle("on", document.body.classList.contains("dark"));
-        },
+        "toggle-dark": () => setTheme(!document.body.classList.contains("dark")),
         "toggle-comments": () => { navMode = false; renderComments(); document.body.classList.toggle("show-comments"); },
         "show-comments": () => { navMode = false; renderComments(); document.body.classList.add("show-comments"); },
         "toggle-header-footer": () => {
           document.body.classList.toggle("show-hf");
           refresh();
+          Autosave.schedule();
         },
         "new-doc": newDocument,
+        "open-file": () => { closeFileMenu(); $("open-input").click(); },
+        "open-settings": openSettings,
+        "insert-datetime": () => insertHtml(escapeHtml(new Date().toLocaleString([], { dateStyle: "long", timeStyle: "short" }))),
+        "insert-lorem": () => insertHtml(LOREM.map((t) => `<p>${t}</p>`).join("")),
+        "insert-hr": () => insertHtml("<hr><p><br></p>"),
+        "insert-signature": () => insertHtml('<p><br></p><p style="border-top:1px solid currentColor;width:240px;margin-top:30pt">Signature</p>'),
         "grow-font": () => stepFontSize(1),
         "shrink-font": () => stepFontSize(-1),
-        "find": findText,
-        "replace": replaceText,
+        "find": () => Find.open(false),
+        "replace": () => Find.open(true),
         "insert-table": insertTable,
         "pick-image": () => $("image-input").click(),
-        "insert-shape": () => insertHtml('<span class="shape" contenteditable="false"></span>'),
-        "insert-chart": insertChart,
         "insert-link": insertLink,
         "add-comment": addComment,
-        "insert-page-number": () => insertHtml('<span class="pn" contenteditable="false" style="font-weight:600">1</span>'),
         "insert-equation": insertEquation,
-        "set-margins": () => document.documentElement.style.setProperty("--page-margin", "48px"),
+        "set-margins": (button) => openMarginsMenu(button),
         "toggle-orientation": () => { landscape = !landscape; applyPageSize(); },
         "insert-break": () => insertHtml('<div class="page-break" contenteditable="false">Page Break</div><p><br></p>'),
         "insert-toc": insertToc,
         "toggle-spellcheck": toggleSpellcheck,
         "word-count": showWordCount,
-        "thesaurus": openThesaurus,
-        "save-version": saveVersion,
-        "restore-version": restoreVersion
+        "save-version": () => saveVersion(),
+        "restore-version": openVersions
       };
 
       document.addEventListener("click", (event) => {
+        /* Features that are not built yet: tell the user instead of doing nothing. */
+        const soon = event.target.closest("[data-soon]");
+        if (soon) { closeFileMenu(); toast(soon.dataset.soon + " is coming soon"); return; }
         const target = event.target.closest("[data-action], [data-exec], [data-style], [data-tab]");
         if (!event.target.closest("#file-menu") && !event.target.closest(".tab.file")) {
           closeFileMenu();
@@ -2224,7 +2248,11 @@
         }
 
         if (target.dataset.exec) {
-          exec(target.dataset.exec);
+          const command = target.dataset.exec;
+          if (command === "undo") UndoStack.undo();
+          else if (command === "redo") UndoStack.redo();
+          else if (command === "paste") pasteFromClipboard();
+          else exec(command);
           return;
         }
 
@@ -2246,26 +2274,30 @@
           exec(target.dataset.execValue, target.value);
           return;
         }
-        if (target.dataset.actionChange === "line-height") editor.style.lineHeight = target.value;
+        if (target.dataset.actionChange === "line-height") {
+          restoreSelection();
+          selectedBlocks().forEach((b) => { b.style.lineHeight = target.value; });
+          refresh();
+        }
         if (target.dataset.actionChange === "shade") {
-          const block = currentBlock();
-          if (block) block.style.background = target.value;
+          restoreSelection();
+          selectedBlocks().forEach((b) => { b.style.background = target.value; });
+          refresh();
         }
         if (target.dataset.actionChange === "zoom") setZoom(target.value);
-        if (target.id === "page-color-input") sheet.style.setProperty("--bg-page", target.value);
+        if (target.id === "page-color-input") { sheet.style.setProperty("--bg-page", target.value); Autosave.schedule(); }
         if (target.dataset.field) {
           const value = Math.max(0, parseFloat(target.value) || 0);
           target.value = formatField(target, value);
           restoreSelection();
-          const block = currentBlock();
-          if (!block) return;
           const css = {
-            "indent-left": ["marginLeft", value * 96 + "px"],
-            "indent-right": ["marginRight", value * 96 + "px"],
+            "indent-left": ["marginLeft", value + "in"],
+            "indent-right": ["marginRight", value + "in"],
             "space-before": ["marginTop", value + "pt"],
             "space-after": ["marginBottom", value + "pt"]
           }[target.dataset.field];
-          block.style[css[0]] = css[1];
+          selectedBlocks().forEach((b) => { b.style[css[0]] = css[1]; });
+          refresh();
         }
       });
 
@@ -2293,17 +2325,58 @@
         }
         refresh(true);
         if (pop.classList.contains("on")) updatePop();
+        try { syncParagraphFields(); } catch (error) { /* non-critical */ }
       });
 
+      /* ---------- Keyboard shortcuts ---------- */
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && document.body.classList.contains("focus-mode")) {
           setMode("print");
+          return;
+        }
+        if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+        const key = event.key.toLowerCase();
+        const active = document.activeElement;
+        /* Typing in a dialog field, the header or the footer keeps native behaviour. */
+        const inOtherField = active && active !== editor && !editor.contains(active) &&
+          active.matches && active.matches("input, textarea, select, [contenteditable='true']");
+        const editable = editor.isContentEditable;
+        const handled = () => event.preventDefault();
+
+        if (key === "s" && !event.shiftKey) {
+          handled();
+          Autosave.now(true).then((ok) => toast(ok ? "Saved in this browser. Use File > Save As to download a copy." : "Couldn't save: browser storage is unavailable"));
+        } else if (key === "f" && !event.shiftKey) { handled(); Find.open(false); }
+        else if (key === "h" && !event.shiftKey) { handled(); Find.open(true); }
+        else if (key === "p" && !event.shiftKey) { handled(); exportDocument("pdf"); }
+        else if (!inOtherField && editable && key === "z") { handled(); event.shiftKey ? UndoStack.redo() : UndoStack.undo(); }
+        else if (!inOtherField && editable && key === "y") { handled(); UndoStack.redo(); }
+        else if (!inOtherField && editable && !event.shiftKey && (key === "b" || key === "i" || key === "u")) {
+          handled();
+          exec({ b: "bold", i: "italic", u: "underline" }[key]);
+        } else if (!inOtherField && editable && event.shiftKey && "lerj".includes(key) && key.length === 1) {
+          handled();
+          exec({ l: "justifyLeft", e: "justifyCenter", r: "justifyRight", j: "justifyFull" }[key]);
         }
       });
 
-      editor.addEventListener("input", refresh);
+      /* Browser-initiated undo/redo (Edit menu, context menu) uses our history too. */
+      editor.addEventListener("beforeinput", (event) => {
+        if (event.inputType === "historyUndo") { event.preventDefault(); UndoStack.undo(); }
+        else if (event.inputType === "historyRedo") { event.preventDefault(); UndoStack.redo(); }
+      });
+
+      function onEditorInput() {
+        refresh(true);
+        schedulePaginate();
+        UndoStack.touch();
+        Find.refreshSoon();
+        if (document.body.classList.contains("show-comments") && !navMode) renderComments();
+      }
+      editor.addEventListener("input", onEditorInput);
       $("doc-name").addEventListener("input", () => {
         document.title = ($("doc-name").value || "Document") + " - OpenWriter";
+        Autosave.schedule();
       });
 
 
@@ -2399,6 +2472,7 @@
         sheet.style.width = w + "px";
         sheet.style.setProperty("--page-h", h + "px");
         paginate();
+        Autosave.schedule();
       }
 
       function toast(message) {
@@ -2488,32 +2562,49 @@
       }
 
       /* ---------- Format Painter ---------- */
+      /* Copies font, size, colour and B/I/U/S from the caret, then applies them to
+         the next selection with normal editing commands (keeps paragraph structure). */
       let painter = null;
-      bind("Format Painter", (btn) => {
-        if (painter) { painter = null; btn.classList.remove("on"); return; }
-        const r = savedRange;
-        if (!r) return toast("Click in the text whose format you want to copy");
-        const node = r.startContainer.nodeType === 3 ? r.startContainer.parentNode : r.startContainer;
+      bind("Format Painter", (button) => {
+        if (painter) { painter = null; button.classList.remove("on"); return; }
+        if (!savedRange) { toast("Click in the text you want to copy formatting from first"); return; }
+        const node = savedRange.startContainer.nodeType === 3 ? savedRange.startContainer.parentElement : savedRange.startContainer;
         const cs = getComputedStyle(node);
-        painter = {
-          fontFamily: cs.fontFamily, fontSize: cs.fontSize, color: cs.color,
-          fontWeight: cs.fontWeight, fontStyle: cs.fontStyle,
-          textDecoration: cs.textDecorationLine === "none" ? "none" : cs.textDecorationLine,
-          backgroundColor: cs.backgroundColor
+        /* Read decorations from the DOM: queryCommandState is unreliable once focus is on the ribbon. */
+        const decorated = (kind) => {
+          for (let el = node; el && el !== editor.parentElement; el = el.parentElement) {
+            if (getComputedStyle(el).textDecorationLine.includes(kind)) return true;
+          }
+          return false;
         };
-        btn.classList.add("on");
-        toast("Format copied — now select the text to apply it to");
+        painter = {
+          family: cs.fontFamily.split(",")[0].replace(/["']/g, "").trim(),
+          size: Math.round(parseFloat(cs.fontSize) * 0.75 * 2) / 2,
+          color: cs.color,
+          bold: parseInt(cs.fontWeight, 10) >= 600,
+          italic: cs.fontStyle === "italic" || cs.fontStyle === "oblique",
+          underline: decorated("underline"),
+          strike: decorated("line-through")
+        };
+        button.classList.add("on");
+        toast("Now select the text to format");
       });
       editor.addEventListener("mouseup", () => {
         if (!painter) return;
         setTimeout(() => {
           const sel = selection();
-          if (!sel.rangeCount || sel.isCollapsed || !editor.contains(sel.anchorNode)) return;
-          const style = Object.entries(painter).map(([k, v]) => k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + ":" + v).join(";");
-          document.execCommand("insertHTML", false, `<span style="${style}">${escapeHtml(sel.toString())}</span>`);
+          if (!painter || !sel.rangeCount || sel.isCollapsed || !editor.contains(sel.anchorNode)) return;
+          savedRange = sel.getRangeAt(0).cloneRange();
+          const p = painter;
           painter = null;
           document.querySelectorAll('button[title="Format Painter"]').forEach((b) => b.classList.remove("on"));
-          refresh();
+          UndoStack.batch(() => {
+            exec("fontName", p.family);
+            setFontSize(p.size);
+            exec("foreColor", p.color);
+            [["bold", p.bold], ["italic", p.italic], ["underline", p.underline], ["strikeThrough", p.strike]]
+              .forEach(([command, wanted]) => { if (cmdState(command) !== wanted) exec(command); });
+          });
         }, 0);
       });
 
@@ -2544,10 +2635,12 @@
           <div class="checks">${flags.map(([c, l]) => `<label><input type="checkbox" data-c="${c}" ${q(c) ? "checked" : ""}> ${l}</label>`).join("")}</div>`,
           [{ label: "Cancel" }, { label: "OK", primary: true, run: (d) => {
             restoreSelection();
-            exec("fontName", val(d, "#fd-font"));
-            setFontSize(val(d, "#fd-size"));
-            exec("foreColor", val(d, "#fd-color"));
-            d.querySelectorAll("[data-c]").forEach((cb) => { if (q(cb.dataset.c) !== cb.checked) exec(cb.dataset.c); });
+            UndoStack.batch(() => {
+              exec("fontName", val(d, "#fd-font"));
+              setFontSize(val(d, "#fd-size"));
+              exec("foreColor", val(d, "#fd-color"));
+              d.querySelectorAll("[data-c]").forEach((cb) => { if (q(cb.dataset.c) !== cb.checked) exec(cb.dataset.c); });
+            });
           } }]);
       });
 
@@ -2585,20 +2678,20 @@
       bind("Styles options", (btn) => actions["toggle-styles"](document.querySelector(".style-row .style-more")));
 
       /* ---------- Lists ---------- */
-      bind("Multilevel List", () => {
+      bind("Multilevel List", () => UndoStack.batch(() => {
         exec("insertOrderedList");
         const b = currentBlock();
         const ol = b && b.closest("ol");
         if (ol) ol.classList.add("ml");
         refresh();
-      });
-      bind("Checklist", () => {
+      }));
+      bind("Checklist", () => UndoStack.batch(() => {
         exec("insertUnorderedList");
         const b = currentBlock();
         const ul = b && b.closest("ul");
         if (ul) ul.classList.toggle("check", true);
         refresh();
-      });
+      }));
       editor.addEventListener("click", (e) => {
         const li = e.target.closest && e.target.closest("ul.check > li");
         if (li && e.offsetX < 26 && e.target === li) { li.classList.toggle("done"); refresh(); }
@@ -2645,80 +2738,867 @@
         { label: "No border", pad: true, run: () => eachBlock((b) => { b.style.border = "none"; b.style.padding = ""; }) }
       ]));
 
-      /* ---------- Dictate ---------- */
-      let recognition = null;
-      bind("Dictate", (btn) => {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) return toast("Dictation isn't supported in this browser — try Chrome or Edge");
-        if (recognition) { recognition.stop(); return; }
-        recognition = new SR();
-        recognition.lang = navigator.language || "en-US";
-        recognition.continuous = true;
-        recognition.interimResults = false;
-        recognition.onresult = (e) => {
-          for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (!e.results[i].isFinal) continue;
-            restoreSelection();
-            document.execCommand("insertText", false, e.results[i][0].transcript.trim() + " ");
-          }
-          refresh();
-        };
-        recognition.onerror = (e) => toast("Dictation: " + e.error);
-        recognition.onend = () => { recognition = null; btn.classList.remove("on"); btn.querySelector(".lbl").textContent = "Dictate"; };
-        recognition.start();
-        btn.classList.add("on");
-        btn.querySelector(".lbl").textContent = "Stop";
-        toast("Listening… click Dictate again to stop");
-      });
+      const LOREM = ["Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.", "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."];
 
-      /* ---------- Editor (proofing) ---------- */
-      const syllables = (w) => { w = w.toLowerCase().replace(/[^a-zà-ÿ]/g, ""); if (!w) return 0; if (w.length <= 3) return 1; return Math.max(1, (w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "").replace(/^y/, "").match(/[aeiouy]{1,2}/g) || []).length); };
-      function fixText(fn) {
-        const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
-        let n;
-        while ((n = walker.nextNode())) { const v = fn(n.data); if (v !== n.data) n.data = v; }
+      /* =====================================================================
+         CORE SERVICES (added in Phase 2)
+           1. Constants and small helpers
+           2. HTML sanitiser (used for opened files, paste and restore)
+           3. Undo / redo history (snapshot based)
+           4. Browser storage (IndexedDB with localStorage fallback) + autosave
+           5. Preferences (theme, display name, autosave switch)
+           6. Find & Replace
+           7. Margins, paste, paragraph-field sync
+           8. Dialogs: shortcuts, what's new, settings, feedback/support,
+              versions, word count
+         ===================================================================== */
+
+      /* ---------- 1. Constants and small helpers ---------- */
+      const GITHUB_URL = "https://lun3x4.github.io/OpenWriter/";
+      const CONTACT_EMAIL = "cha.lunexa@gmail.com";
+      const DEFAULT_HEADER = sheet.querySelector(".header").innerHTML;
+      const DEFAULT_FOOTER = sheet.querySelector(".footer").innerHTML;
+      const MARGIN_PRESETS = [["Normal", 96, '1"'], ["Narrow", 48, '0.5"'], ["Moderate", 72, '0.75"'], ["Wide", 144, '1.5"']];
+      let pageMargin = 96;
+
+      /* Minimal stylesheet embedded in exported .html files so lists, tables,
+         the table of contents and checklists still look right outside the app. */
+      const EXPORT_CSS = "body{font:11pt/1.5 Calibri,'Segoe UI',Arial,sans-serif;max-width:8.5in;margin:1in auto;padding:0 .5in;color:#000}" +
+        "h1{font-size:20pt;color:#0f4761}h2{font-size:16pt;color:#0f4761}h3{font-size:13pt;color:#0f4761}" +
+        "table{border-collapse:collapse}td,th{border:1px solid #888;padding:4px 8px}img{max-width:100%;height:auto}" +
+        "ul.check{list-style:none;padding-left:4px}ul.check>li::before{content:'\\2610 '}ul.check>li.done::before{content:'\\2611 '}" +
+        "ul.check>li.done{color:#666;text-decoration:line-through}ol.ml{list-style:decimal}ol.ml ol{list-style:lower-alpha}ol.ml ol ol{list-style:lower-roman}" +
+        ".toc{margin:12pt 0}.toc a{display:flex;justify-content:space-between;text-decoration:none;color:inherit}.toc-title{font-weight:700;font-size:14pt}" +
+        ".comment-mark{background:#fdf2a7}.note{font-size:9pt}.page-break{border:0;height:0;margin:0;overflow:hidden;font-size:0;break-after:page}";
+
+      const baseName = () => (($("doc-name").value || "").replace(/[\\/:*?"<>|]/g, "").trim()) || "Document1";
+
+      function triggerDownload(blob, filename) {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 5000);
       }
-      function openEditorPane() {
-        const text = [...editor.querySelectorAll("p,h1,h2,h3,li,blockquote")].filter((e) => !e.classList.contains("note")).map((e) => e.innerText).join("\n");
-        const words = text.match(/[\p{L}\p{N}'’-]+/gu) || [];
-        const sentences = text.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
-        if (words.length < 3) return openDialog("Editor", "<p>Write a bit more and Editor will review it for you.</p>");
-        const syl = words.reduce((a, w) => a + syllables(w), 0);
-        const wps = words.length / Math.max(1, sentences.length);
-        const flesch = Math.round(Math.max(0, Math.min(100, 206.835 - 1.015 * wps - 84.6 * (syl / words.length))));
-        const issues = [];
-        (text.match(/\b(\p{L}+)(\s+\1\b)+/giu) || []).forEach((m) => issues.push({ k: "Repeated word", t: m, find: m }));
-        if (/ {2,}/.test(text)) issues.push({ k: "Extra spaces", t: (text.match(/ {2,}/g) || []).length + " place(s) with more than one space" });
-        sentences.filter((s) => s.split(/\s+/).length > 30).forEach((s) => issues.push({ k: "Long sentence", t: s.slice(0, 90) + "…", find: s.slice(0, 40) }));
-        sentences.filter((s) => /^[a-zà-ÿ]/.test(s) && !/^\d/.test(s)).forEach((s) => issues.push({ k: "Starts with lowercase", t: s.slice(0, 60), find: s.slice(0, 30) }));
-        const level = flesch >= 70 ? "Easy to read" : flesch >= 50 ? "Fairly easy" : flesch >= 30 ? "Difficult" : "Very difficult";
-        const dlg = openDialog("Editor", `
-          <div class="score"><div><b>${flesch}</b><small class="m">Readability (${level})</small></div><div><b>${Math.max(1, Math.round(words.length / 238))} min</b><small class="m">Reading time</small></div><div><b>${wps.toFixed(1)}</b><small class="m">Words / sentence</small></div></div>
-          ${issues.length ? issues.slice(0, 40).map((i, n) => `<div class="row"><div class="grow"><b>${i.k}</b><br><small>${escapeHtml(i.t)}</small></div>${i.find ? `<button class="ow-btn sm" data-find="${n}">Show</button>` : ""}</div>`).join("") : '<p>No issues found. Nice work!</p>'}`,
-          [{ label: "Close" }, ...(issues.some((i) => i.k === "Repeated word" || i.k === "Extra spaces") ? [{ label: "Fix spacing & repeats", primary: true, run: () => {
-            fixText((s) => s.replace(/(\S) {2,}/g, "$1 ").replace(/\b(\p{L}+)(\s+\1\b)+/giu, "$1"));
-            refresh(); toast("Fixed");
-          } }] : [])], { wide: true });
-        dlg.addEventListener("click", (e) => {
-          const b = e.target.closest("[data-find]");
-          if (!b) return;
-          dlg.close(); editor.focus(); window.getSelection().removeAllRanges();
-          if (window.find) window.find(issues[b.dataset.find].find, false, false, true);
+
+      function copyText(text, message) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => toast(message), () => toast("Couldn't copy: your browser blocked it"));
+        } else {
+          toast("Clipboard isn't available here");
+        }
+      }
+
+      const cmdState = (command) => {
+        try { return document.queryCommandState(command); } catch (error) { return false; }
+      };
+
+      /* ---------- 2. HTML sanitiser ---------- */
+      /* Allow-list for embedded video frames; every other iframe is removed. */
+      const SAFE_IFRAME = /^https:\/\/(www\.youtube\.com\/embed\/|player\.vimeo\.com\/video\/)/;
+
+      function unsafeUrl(value) {
+        const v = String(value).replace(/[\u0000-\u0020]/g, "").toLowerCase();
+        if (/^(javascript|vbscript):/.test(v)) return true;
+        return /^data:/.test(v) && !/^data:(image\/(png|jpe?g|gif|webp|bmp)|video\/)/.test(v);
+      }
+
+      /* Parses untrusted HTML and returns a cleaned body.innerHTML string. */
+      function sanitizeHtml(html) {
+        const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+        doc.querySelectorAll("script,style,link,meta,base,object,embed,form,noscript,template").forEach((n) => n.remove());
+        doc.querySelectorAll("iframe").forEach((n) => { if (!SAFE_IFRAME.test(n.getAttribute("src") || "")) n.remove(); });
+        const urlAttrs = ["href", "src", "xlink:href", "action", "formaction", "poster"];
+        doc.body.querySelectorAll("*").forEach((n) => {
+          [...n.attributes].forEach((a) => {
+            const name = a.name.toLowerCase();
+            if (name.startsWith("on") || name === "srcdoc" || (urlAttrs.includes(name) && unsafeUrl(a.value))) n.removeAttribute(a.name);
+          });
+        });
+        return doc.body.innerHTML;
+      }
+
+      /* The document as HTML, without the temporary pagination styles. */
+      function serializeEditor() {
+        const clone = editor.cloneNode(true);
+        clone.querySelectorAll("[style*='--push']").forEach((el) => {
+          el.style.removeProperty("--push");
+          if (!el.getAttribute("style")) el.removeAttribute("style");
+        });
+        return clone.innerHTML;
+      }
+
+      /* ---------- 3. Undo / redo history ---------- */
+      /* Selections are stored as character offsets into the document text, so
+         they survive re-parsing the HTML when a snapshot is restored. */
+      function textOffset(node, offset) {
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.setEnd(node, offset);
+        return range.toString().length;
+      }
+
+      function pointAtOffset(target) {
+        const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+        let node, left = target, last = null;
+        while ((node = walker.nextNode())) {
+          last = node;
+          if (left <= node.length) return [node, left];
+          left -= node.length;
+        }
+        return last ? [last, last.length] : [editor, editor.childNodes.length];
+      }
+
+      function captureSelection() {
+        const sel = selection();
+        if (!sel.rangeCount) return null;
+        const range = sel.getRangeAt(0);
+        if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) return null;
+        try {
+          return { s: textOffset(range.startContainer, range.startOffset), e: textOffset(range.endContainer, range.endOffset) };
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function applySelection(saved) {
+        const range = document.createRange();
+        if (saved) {
+          const [startNode, startOffset] = pointAtOffset(saved.s);
+          const [endNode, endOffset] = pointAtOffset(saved.e);
+          range.setStart(startNode, startOffset);
+          range.setEnd(endNode, endOffset);
+        } else {
+          range.selectNodeContents(editor);
+          range.collapse(false);
+        }
+        const sel = selection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+
+      const UndoStack = (() => {
+        const MAX_STATES = 200;
+        const MAX_CHARS = 40e6;          /* total HTML kept in memory */
+        let states = [];
+        let index = -1;
+        let total = 0;
+        let timer = null;                /* pending "typing" snapshot */
+        let holding = 0;                 /* >0 while a batch is running */
+        let applying = false;            /* true while restoring a snapshot */
+
+        const snapshot = () => ({ html: serializeEditor(), sel: captureSelection() });
+
+        function syncButtons() {
+          document.querySelectorAll('[data-exec="undo"]').forEach((b) => b.classList.toggle("dim", index <= 0));
+          document.querySelectorAll('[data-exec="redo"]').forEach((b) => b.classList.toggle("dim", index >= states.length - 1));
+        }
+
+        /* Forget all history and start again from the current content. */
+        function reset() {
+          clearTimeout(timer);
+          timer = null;
+          const first = snapshot();
+          states = [first];
+          index = 0;
+          total = first.html.length;
+          syncButtons();
+        }
+
+        /* Record the current content as a new undo step (if it changed). */
+        function commit() {
+          if (applying || holding) return false;
+          clearTimeout(timer);
+          timer = null;
+          const html = serializeEditor();
+          const current = states[index];
+          if (current && current.html === html) return false;
+          total -= states.slice(index + 1).reduce((sum, s) => sum + s.html.length, 0);
+          states.length = index + 1;
+          states.push({ html, sel: captureSelection() });
+          index++;
+          total += html.length;
+          while (states.length > 1 && (states.length > MAX_STATES || total > MAX_CHARS)) {
+            total -= states.shift().html.length;
+            index--;
+          }
+          syncButtons();
+          Autosave.schedule();
+          return true;
+        }
+
+        /* Called while typing: snapshots once typing pauses for half a second. */
+        function touch() {
+          if (applying) return;
+          clearTimeout(timer);
+          timer = setTimeout(commit, 500);
+          Autosave.schedule();
+        }
+
+        /* Commit pending typing right now so the next command is its own step. */
+        function flush() {
+          if (timer) commit();
+        }
+
+        /* Run several edits and record them as one undo step. */
+        function batch(fn) {
+          holding++;
+          try { fn(); } finally { holding--; }
+          commit();
+        }
+
+        function go(delta) {
+          if (!editor.isContentEditable) return;
+          if (timer) commit();
+          const next = index + delta;
+          if (next < 0 || next >= states.length) return;
+          index = next;
+          const state = states[index];
+          applying = true;
+          try {
+            editor.innerHTML = state.html;
+            editor.focus();
+            applySelection(state.sel);
+            refresh();
+            renderComments();
+            Find.refresh();
+          } finally {
+            applying = false;
+          }
+          const sel = selection();
+          if (sel.rangeCount) {
+            savedRange = sel.getRangeAt(0).cloneRange();
+            const el = sel.focusNode && (sel.focusNode.nodeType === 3 ? sel.focusNode.parentElement : sel.focusNode);
+            if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+          }
+          syncButtons();
+          Autosave.schedule();
+        }
+
+        return { reset, commit, touch, flush, batch, undo: () => go(-1), redo: () => go(1) };
+      })();
+
+      /* ---------- 4. Browser storage + autosave ---------- */
+      /* IndexedDB first (large documents with images), localStorage as fallback.
+         Every call is wrapped in try/catch; failures surface as a status message. */
+      const Store = (() => {
+        const DB_NAME = "openwriter";
+        const STORE = "kv";
+        let dbPromise = null;
+
+        function openDb() {
+          if (!dbPromise) {
+            dbPromise = new Promise((resolve, reject) => {
+              try {
+                if (!window.indexedDB) throw new Error("IndexedDB unavailable");
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = () => request.result.createObjectStore(STORE);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+                request.onblocked = () => reject(new Error("IndexedDB blocked"));
+              } catch (error) {
+                reject(error);
+              }
+            });
+            dbPromise.catch(() => { dbPromise = null; });
+          }
+          return dbPromise;
+        }
+
+        const run = (db, mode, fn) => new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE, mode);
+          const request = fn(tx.objectStore(STORE));
+          tx.oncomplete = () => resolve(request && request.result);
+          tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(tx.error);
+        });
+
+        async function set(key, value) {
+          try {
+            const db = await openDb();
+            await run(db, "readwrite", (store) => store.put(value, key));
+            try { localStorage.removeItem("ow:" + key); } catch (error) { /* ignore */ }
+          } catch (idbError) {
+            localStorage.setItem("ow:" + key, JSON.stringify(value));   /* throws on quota: caller handles */
+          }
+        }
+
+        async function get(key) {
+          try {
+            const db = await openDb();
+            const value = await run(db, "readonly", (store) => store.get(key));
+            if (value !== undefined) return value;
+          } catch (error) { /* fall through to localStorage */ }
+          try {
+            const raw = localStorage.getItem("ow:" + key);
+            return raw ? JSON.parse(raw) : undefined;
+          } catch (error) {
+            return undefined;
+          }
+        }
+
+        async function del(key) {
+          try { const db = await openDb(); await run(db, "readwrite", (store) => store.delete(key)); } catch (error) { /* ignore */ }
+          try { localStorage.removeItem("ow:" + key); } catch (error) { /* ignore */ }
+        }
+
+        return { set, get, del };
+      })();
+
+      /* Everything that should come back after a reload. */
+      function snapshotDoc() {
+        return {
+          v: 1,
+          savedAt: Date.now(),
+          name: $("doc-name").value,
+          html: serializeEditor(),
+          header: sheet.querySelector(".header").innerHTML,
+          footer: sheet.querySelector(".footer").innerHTML,
+          showHf: document.body.classList.contains("show-hf"),
+          pageSize: pageSizeName,
+          landscape,
+          margin: pageMargin,
+          bordered: sheet.classList.contains("bordered"),
+          pageColor: sheet.style.getPropertyValue("--bg-page").trim(),
+          versions
+        };
+      }
+
+      function applySavedDoc(data) {
+        editor.innerHTML = sanitizeHtml(data.html) || "<p><br></p>";
+        savedRange = null;
+        $("doc-name").value = data.name || "Document1";
+        document.title = $("doc-name").value + " - OpenWriter";
+        if (typeof data.header === "string") sheet.querySelector(".header").innerHTML = sanitizeHtml(data.header);
+        if (typeof data.footer === "string") sheet.querySelector(".footer").innerHTML = sanitizeHtml(data.footer);
+        document.body.classList.toggle("show-hf", !!data.showHf);
+        if (PAGE_SIZES[data.pageSize]) pageSizeName = data.pageSize;
+        landscape = !!data.landscape;
+        if (Number(data.margin) >= 24 && Number(data.margin) <= 192) {
+          pageMargin = Number(data.margin);
+          document.documentElement.style.setProperty("--page-margin", pageMargin + "px");
+        }
+        sheet.classList.toggle("bordered", !!data.bordered);
+        if (/^#[0-9a-f]{6}$/i.test(data.pageColor || "")) {
+          sheet.style.setProperty("--bg-page", data.pageColor);
+          $("page-color-input").value = data.pageColor;
+        }
+        versions = Array.isArray(data.versions)
+          ? data.versions.filter((v) => v && typeof v.html === "string").slice(-20)
+          : [];
+        applyPageSize();
+      }
+
+      const Autosave = (() => {
+        const label = $("save-state");
+        let enabled = true;
+        let ready = false;               /* false until the stored copy has been loaded */
+        let dirty = false;
+        let failed = false;
+        let timer = null;
+        let lastSaved = null;
+        let chain = Promise.resolve();   /* serialises writes */
+
+        const TEXT = {
+          idle: "Autosave on", dirty: "Unsaved changes", saving: "Saving…",
+          saved: "Saved", off: "Autosave off", error: "Not saved: storage unavailable"
+        };
+
+        function setState(kind) {
+          label.textContent = TEXT[kind];
+          label.classList.toggle("err", kind === "error");
+          label.title = kind === "saved" && lastSaved
+            ? "All changes saved in this browser at " + lastSaved.toLocaleTimeString()
+            : TEXT[kind];
+        }
+
+        async function doSave(force) {
+          if (!enabled && !force) { setState("off"); return false; }
+          if (!ready) return false;
+          setState("saving");
+          try {
+            await Store.set("doc", snapshotDoc());
+            lastSaved = new Date();
+            dirty = false;
+            failed = false;
+            setState(timer ? "dirty" : enabled ? "saved" : "off");
+            return true;
+          } catch (error) {
+            failed = true;
+            setState("error");
+            console.warn("OpenWriter: autosave failed", error);
+            return false;
+          }
+        }
+
+        function now(force) {
+          clearTimeout(timer);
+          timer = null;
+          chain = chain.then(() => doSave(force));
+          return chain;
+        }
+
+        /* Throttled: saves at most ~1.5 s after the first unsaved change, so
+           continuous typing still gets saved regularly. */
+        function schedule() {
+          if (!ready) return;              /* startup: nothing to save until the stored copy is loaded */
+          dirty = true;
+          if (!enabled) { setState("off"); return; }
+          setState("dirty");
+          if (!timer) timer = setTimeout(() => { timer = null; now(); }, 1500);
+        }
+
+        async function restore() {
+          let data = null;
+          try { data = await Store.get("doc"); } catch (error) { data = null; }
+          ready = true;
+          if (data && typeof data.html === "string") {
+            try {
+              applySavedDoc(data);
+              lastSaved = data.savedAt ? new Date(data.savedAt) : null;
+              setState(enabled ? "saved" : "off");
+              return true;
+            } catch (error) {
+              console.warn("OpenWriter: could not restore the saved document", error);
+            }
+          }
+          setState(enabled ? "idle" : "off");
+          return false;
+        }
+
+        function setEnabled(value) {
+          enabled = !!value;
+          if (enabled) schedule();
+          else { clearTimeout(timer); timer = null; setState("off"); }
+        }
+
+        /* Best-effort save when the tab is hidden or closed. */
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && dirty) now(); });
+        window.addEventListener("pagehide", () => { if (dirty) now(); });
+        window.addEventListener("beforeunload", (event) => {
+          if (failed || (dirty && !enabled)) { event.preventDefault(); event.returnValue = ""; }
+        });
+
+        return { schedule, now, restore, setEnabled, isEnabled: () => enabled };
+      })();
+
+      /* ---------- 5. Preferences ---------- */
+      function loadPrefs() {
+        try { return JSON.parse(localStorage.getItem("ow:prefs") || "{}") || {}; } catch (error) { return {}; }
+      }
+
+      function savePrefs() {
+        try {
+          localStorage.setItem("ow:prefs", JSON.stringify({
+            dark: document.body.classList.contains("dark"),
+            autosave: Autosave.isEnabled(),
+            name: $("avatar").dataset.name || ""
+          }));
+        } catch (error) { /* storage unavailable: preferences just won't persist */ }
+      }
+
+      function setTheme(dark) {
+        document.body.classList.toggle("dark", !!dark);
+        $("view-dark").classList.toggle("on", !!dark);
+        savePrefs();
+      }
+
+      function applyPrefs() {
+        const prefs = loadPrefs();
+        if (typeof prefs.dark === "boolean") document.body.classList.toggle("dark", prefs.dark);
+        if (prefs.name) {
+          $("avatar").dataset.name = prefs.name;
+          $("avatar").textContent = prefs.name[0].toUpperCase();
+        }
+        Autosave.setEnabled(prefs.autosave !== false);
+      }
+
+      /* ---------- 6. Find & Replace ---------- */
+      /* Matches are found per block (paragraph, list item, table cell ...) so a
+         word split across bold/italic runs is still found. Highlights use the CSS
+         Custom Highlight API where available and never touch the document, so
+         searching can't corrupt markup. Replacing edits text nodes directly. */
+      const Find = (() => {
+        const bar = $("findbar");
+        const queryInput = $("fb-q");
+        const replaceInput = $("fb-r");
+        const countLabel = $("fb-count");
+        const optCase = $("fb-case");
+        const optWord = $("fb-word");
+        const HAS_HIGHLIGHT = !!(window.CSS && CSS.highlights && window.Highlight);
+        const BLOCKS = "p,h1,h2,h3,h4,h5,h6,li,td,th,blockquote,pre,div";
+        let ranges = [];
+        let current = -1;
+        let timer = null;
+
+        const isOpen = () => bar.classList.contains("on");
+
+        function buildRegex() {
+          const q = queryInput.value;
+          if (!q) return null;
+          const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const source = optWord.checked ? "(?<![\\p{L}\\p{N}_])" + escaped + "(?![\\p{L}\\p{N}_])" : escaped;
+          try { return new RegExp(source, optCase.checked ? "gu" : "giu"); } catch (error) { return null; }
+        }
+
+        function locate(spans, position, isEnd) {
+          for (const span of spans) {
+            const end = span.start + span.node.data.length;
+            const hit = isEnd ? (position <= end && position > span.start) : (position < end && position >= span.start);
+            if (hit) return { node: span.node, offset: position - span.start };
+          }
+          return null;
+        }
+
+        function collect() {
+          ranges = [];
+          const re = buildRegex();
+          if (!re) return;
+          const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+          let group = [];
+          let groupBlock = null;
+          let node;
+
+          const scan = () => {
+            if (!group.length) return;
+            let text = "";
+            const spans = [];
+            group.forEach((n) => { spans.push({ node: n, start: text.length }); text += n.data; });
+            re.lastIndex = 0;
+            let match;
+            while ((match = re.exec(text))) {
+              if (!match[0].length) { re.lastIndex++; continue; }
+              const a = locate(spans, match.index, false);
+              const b = locate(spans, match.index + match[0].length, true);
+              if (a && b) {
+                const range = document.createRange();
+                range.setStart(a.node, a.offset);
+                range.setEnd(b.node, b.offset);
+                ranges.push(range);
+              }
+            }
+            group = [];
+          };
+
+          while ((node = walker.nextNode())) {
+            const el = node.parentElement;
+            if (!el) continue;
+            const locked = el.closest('[contenteditable="false"]');          /* TOC, notes, equations */
+            if (locked && locked !== editor && editor.contains(locked)) continue;
+            const block = el.closest(BLOCKS) || editor;
+            if (block !== groupBlock) { scan(); groupBlock = block; }
+            group.push(node);
+          }
+          scan();
+        }
+
+        function firstAtOrAfter(point) {
+          for (let i = 0; i < ranges.length; i++) {
+            try { if (ranges[i].compareBoundaryPoints(Range.START_TO_START, point) >= 0) return i; } catch (error) { return 0; }
+          }
+          return 0;
+        }
+
+        function paint(scroll) {
+          if (HAS_HIGHLIGHT) {
+            CSS.highlights.delete("ow-find");
+            CSS.highlights.delete("ow-find-current");
+            if (ranges.length) {
+              CSS.highlights.set("ow-find", new Highlight(...ranges));
+              if (current >= 0) {
+                const currentHighlight = new Highlight(ranges[current]);
+                currentHighlight.priority = 1;
+                CSS.highlights.set("ow-find-current", currentHighlight);
+              }
+            }
+          } else if (current >= 0) {
+            const sel = selection();
+            sel.removeAllRanges();
+            sel.addRange(ranges[current].cloneRange());
+          }
+          countLabel.textContent = !queryInput.value ? "" : ranges.length ? `${current + 1} of ${ranges.length}` : "No results";
+          if (scroll && current >= 0) {
+            const el = ranges[current].startContainer.parentElement;
+            if (el) el.scrollIntoView({ block: "center", inline: "nearest" });
+          }
+        }
+
+        function run() {
+          collect();
+          current = ranges.length ? (savedRange ? firstAtOrAfter(savedRange) : 0) : -1;
+          paint(true);
+        }
+
+        function update() {
+          if (!isOpen()) return;
+          collect();
+          current = ranges.length ? Math.min(Math.max(current, 0), ranges.length - 1) : -1;
+          paint(false);
+        }
+
+        function step(delta) {
+          if (!ranges.length) { run(); return; }
+          current = (current + delta + ranges.length) % ranges.length;
+          paint(true);
+        }
+
+        /* Replaces a range with plain text and leaves it collapsed after the new text. */
+        function replaceRange(range, text) {
+          range.deleteContents();
+          const node = document.createTextNode(text);
+          range.insertNode(node);
+          range.setStartAfter(node);
+          range.collapse(true);
+          if (node.parentNode) node.parentNode.normalize();
+        }
+
+        function replaceCurrent() {
+          if (!ranges.length) run();
+          if (current < 0) return;
+          UndoStack.flush();
+          const range = ranges[current];
+          replaceRange(range, replaceInput.value);
+          const after = range.cloneRange();
+          refresh();                                        /* records one undo step */
+          collect();
+          current = ranges.length ? firstAtOrAfter(after) : -1;
+          paint(true);
+        }
+
+        function replaceAll() {
+          collect();
+          if (!ranges.length) { paint(false); return; }
+          const list = ranges.slice();
+          UndoStack.flush();
+          UndoStack.batch(() => {
+            for (let i = list.length - 1; i >= 0; i--) replaceRange(list[i], replaceInput.value);   /* last to first keeps offsets valid */
+            refresh();
+          });
+          collect();
+          current = ranges.length ? 0 : -1;
+          paint(false);
+          toast(`Replaced ${list.length} occurrence${list.length === 1 ? "" : "s"}`);
+        }
+
+        function clearHighlights() {
+          if (HAS_HIGHLIGHT) { CSS.highlights.delete("ow-find"); CSS.highlights.delete("ow-find-current"); }
+        }
+
+        function open(withReplace) {
+          bar.classList.add("on");
+          bar.classList.toggle("replace", !!withReplace);
+          const picked = savedRange && !savedRange.collapsed ? savedRange.toString() : "";
+          if (picked && picked.length <= 120 && !/\n/.test(picked)) queryInput.value = picked;
+          if (withReplace && queryInput.value) replaceInput.focus();
+          else { queryInput.focus(); queryInput.select(); }
+          run();
+        }
+
+        function close() {
+          bar.classList.remove("on");
+          ranges = [];
+          current = -1;
+          clearHighlights();
+          restoreSelection();
+        }
+
+        queryInput.addEventListener("input", run);
+        [optCase, optWord].forEach((el) => el.addEventListener("change", run));
+        bar.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); }
+          else if (event.key === "Enter" && (event.target === queryInput || event.target === replaceInput)) {
+            event.preventDefault();
+            if (event.target === replaceInput) replaceCurrent(); else step(event.shiftKey ? -1 : 1);
+          }
+        });
+        bar.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-fb]");
+          if (!button) return;
+          ({ next: () => step(1), prev: () => step(-1), replace: replaceCurrent, all: replaceAll, close })[button.dataset.fb]();
+        });
+
+        return {
+          open,
+          close,
+          refresh: update,
+          refreshSoon: () => { if (isOpen()) { clearTimeout(timer); timer = setTimeout(update, 250); } }
+        };
+      })();
+
+      /* ---------- 7. Margins, paste, paragraph-field sync ---------- */
+      function applyMargin(px) {
+        pageMargin = px;
+        document.documentElement.style.setProperty("--page-margin", px + "px");
+        paginate();
+        Autosave.schedule();
+      }
+
+      function openMarginsMenu(button) {
+        openMenu(button, MARGIN_PRESETS.map(([name, px, label]) => ({
+          label: `${name} (${label})`, on: pageMargin === px, run: () => applyMargin(px)
+        })));
+      }
+
+      function insertPlainText(text) {
+        const lines = String(text).replace(/\r\n?/g, "\n").split("\n");
+        if (lines.length === 1) { restoreSelection(); document.execCommand("insertText", false, lines[0]); refresh(); return; }
+        insertHtml(lines.map((line) => `<p>${line ? escapeHtml(line) : "<br>"}</p>`).join(""));
+      }
+
+      /* Browsers block execCommand("paste"), so the Paste button reads the
+         clipboard through the async Clipboard API (may ask for permission). */
+      async function pasteFromClipboard() {
+        try {
+          if (navigator.clipboard && navigator.clipboard.read) {
+            const items = await navigator.clipboard.read();
+            for (const item of items) {
+              if (item.types.includes("text/html")) {
+                insertHtml(sanitizeHtml(await (await item.getType("text/html")).text()));
+                return;
+              }
+              if (item.types.includes("text/plain")) {
+                insertPlainText(await (await item.getType("text/plain")).text());
+                return;
+              }
+            }
+          } else if (navigator.clipboard && navigator.clipboard.readText) {
+            insertPlainText(await navigator.clipboard.readText());
+            return;
+          }
+          throw new Error("Clipboard API unavailable");
+        } catch (error) {
+          toast("Your browser blocked clipboard access. Press Ctrl+V to paste instead.");
+        }
+      }
+
+      /* Keeps the Layout-tab indent/spacing boxes and the line-spacing menu in
+         step with the paragraph the caret is in. */
+      function syncParagraphFields() {
+        const block = currentBlock();
+        if (!block || !editor.contains(block)) return;
+        const cs = getComputedStyle(block);
+        const setField = (field, value) => {
+          const input = document.querySelector(`[data-field="${field}"]`);
+          if (input && input !== document.activeElement && Number.isFinite(value)) input.value = formatField(input, value);
+        };
+        setField("indent-left", parseFloat(cs.marginLeft) / 96);
+        setField("indent-right", parseFloat(cs.marginRight) / 96);
+        setField("space-before", parseFloat(cs.marginTop) * 0.75);
+        setField("space-after", parseFloat(cs.marginBottom) * 0.75);
+        const select = document.querySelector('[data-action-change="line-height"]');
+        const ratio = parseFloat(cs.lineHeight) / parseFloat(cs.fontSize);
+        if (select && select !== document.activeElement && Number.isFinite(ratio)) {
+          let best = select.options[0];
+          [...select.options].forEach((o) => { if (Math.abs(Number(o.value) - ratio) < Math.abs(Number(best.value) - ratio)) best = o; });
+          select.value = best.value;
+        }
+      }
+
+      /* ---------- 8. Dialogs ---------- */
+      function openShortcuts() {
+        const rows = [
+          ["Ctrl + B", "Bold"],
+          ["Ctrl + I", "Italic"],
+          ["Ctrl + U", "Underline"],
+          ["Ctrl + Z", "Undo"],
+          ["Ctrl + Y  or  Ctrl + Shift + Z", "Redo"],
+          ["Ctrl + S", "Save now (autosave is also on)"],
+          ["Ctrl + F", "Find"],
+          ["Ctrl + H", "Find and replace"],
+          ["Ctrl + P", "Print or save as PDF"],
+          ["Ctrl + Shift + L / E / R / J", "Align left / center / right / justify"],
+          ["Ctrl + A / C / X / V", "Select all / copy / cut / paste"],
+          ["Tab  /  Shift + Tab", "Indent / outdent a list item"],
+          ["Alt + Q", "Search tools"],
+          ["Esc", "Close Find or a dialog; leave Focus mode"]
+        ];
+        openDialog("Keyboard shortcuts",
+          `<p><small class="m">On a Mac, use ⌘ instead of Ctrl.</small></p>` +
+          rows.map(([keys, what]) => `<div class="row"><div class="grow">${escapeHtml(what)}</div><kbd>${escapeHtml(keys)}</kbd></div>`).join(""));
+      }
+
+      function openWhatsNew() {
+        openDialog("What's new",
+          `<ul class="wn">
+            <li><b>Reliable undo and redo</b>: Ctrl+Z / Ctrl+Y now cover every edit, including formatting, find &amp; replace and restored versions.</li>
+            <li><b>Autosave</b>: your document is kept in this browser and comes back after a reload. Watch the "Saved" label in the status bar.</li>
+            <li><b>Find &amp; Replace panel</b> (Ctrl+F / Ctrl+H) with match case, whole word and replace all.</li>
+            <li><b>Real page breaks</b> and margin presets (Layout tab).</li>
+            <li><b>Quick Insert</b>: date &amp; time, placeholder text, divider and signature line (Insert tab).</li>
+            <li><b>Focus mode</b> for distraction-free writing (View tab).</li>
+          </ul>
+          <p><small class="m">Coming soon: Word (.docx) import and export, headers and footers on every page, working footnotes, columns, track changes.</small></p>`);
+      }
+
+      function openSettings() {
+        const dark = document.body.classList.contains("dark");
+        const dlg = openDialog("Settings", `
+          <label class="f">Theme</label>
+          <select id="st-theme"><option value="dark" ${dark ? "selected" : ""}>Dark</option><option value="light" ${dark ? "" : "selected"}>Light</option></select>
+          <div class="checks"><label><input type="checkbox" id="st-auto" ${Autosave.isEnabled() ? "checked" : ""}> Autosave to this browser</label></div>
+          <p><button class="ow-btn sm" type="button" id="st-clear">Delete the saved copy from this browser</button></p>
+          <small class="m">Your document is stored only in this browser. Nothing is uploaded anywhere.</small>`,
+          [{ label: "Cancel" }, { label: "Save", primary: true, run: (d) => {
+            Autosave.setEnabled(d.querySelector("#st-auto").checked);
+            setTheme(val(d, "#st-theme") === "dark");
+          } }]);
+        dlg.querySelector("#st-clear").addEventListener("click", () => {
+          if (!confirm("Delete the copy of your document that is saved in this browser? The text in the editor stays until you close the tab.")) return;
+          Store.del("doc").then(() => toast("Saved copy deleted"));
         });
       }
-      bind("Editor", openEditorPane);
 
-      /* ---------- Add-ins ---------- */
-      bind("Add-ins", () => {
-        const LOREM = ["Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.", "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."];
-        const items = [
-          ["Date & time", "Insert today's date and the current time", () => insertHtml(escapeHtml(new Date().toLocaleString([], { dateStyle: "long", timeStyle: "short" })))],
-          ["Placeholder text", "Insert three paragraphs of Lorem ipsum", () => insertHtml(LOREM.map((t) => `<p>${t}</p>`).join(""))],
-          ["Horizontal line", "Insert a divider", () => insertHtml("<hr><p><br></p>")],
-          ["Signature line", "Insert a line to sign above", () => insertHtml('<p><br></p><p style="border-top:1px solid currentColor;width:240px;margin-top:30pt">Signature</p>')]
-        ];
-        const dlg = openDialog("Add-ins", items.map((it, i) => `<div class="row"><div class="grow"><b>${it[0]}</b><br><small>${it[1]}</small></div><button class="ow-btn sm" data-i="${i}">Insert</button></div>`).join(""));
-        dlg.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) { dlg.close(); items[b.dataset.i][2](); } });
+      /* Shared by "Give Feedback" and "Contact Support". */
+      function openMessageDialog(config) {
+        const compose = (d) => ({ subject: `${config.subject}: ${val(d, "#mg-type")}`, body: val(d, "#mg-text").trim() });
+        openDialog(config.title, `
+          <label class="f">${escapeHtml(config.typeLabel)}</label>
+          <select id="mg-type">${config.types.map((t) => `<option>${escapeHtml(t)}</option>`).join("")}</select>
+          <label class="f">Message</label>
+          <textarea id="mg-text" placeholder="${escapeHtml(config.placeholder)}"></textarea>
+          <p><small class="m">This opens your email app with a message addressed to ${escapeHtml(CONTACT_EMAIL)}. Nothing is sent until you press Send there.</small></p>`,
+          [{ label: "Cancel" },
+           { label: "Copy", run: (d) => {
+             const m = compose(d);
+             if (!m.body) { toast("Write something first"); return false; }
+             copyText(`To: ${CONTACT_EMAIL}\nSubject: ${m.subject}\n\n${m.body}`, "Message copied");
+             return false;
+           } },
+           { label: "Send by email", primary: true, run: (d) => {
+             const m = compose(d);
+             if (!m.body) { toast("Write something first"); return false; }
+             location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`;
+           } }]);
+      }
+
+      function openFeedback() {
+        openMessageDialog({
+          title: "Give feedback", subject: "OpenWriter feedback", typeLabel: "Type",
+          types: ["Suggestion", "Problem", "Compliment"], placeholder: "Tell us what you think…"
+        });
+      }
+
+      function openSupport() {
+        openMessageDialog({
+          title: "Contact support", subject: "OpenWriter support", typeLabel: "Topic",
+          types: ["Question", "Bug report", "Something else"], placeholder: "How can we help? If something broke, tell us what you did and what you expected."
+        });
+      }
+
+      /* Comment cards: jump to / delete a comment */
+      $("comments-list").addEventListener("click", (event) => {
+        const go = event.target.closest("[data-go-comment]");
+        const del = event.target.closest("[data-del-comment]");
+        const marks = [...editor.querySelectorAll(".comment-mark")];
+        if (go && marks[go.dataset.goComment]) marks[go.dataset.goComment].scrollIntoView({ block: "center" });
+        if (del && marks[del.dataset.delComment]) {
+          const mark = marks[del.dataset.delComment];
+          mark.replaceWith(...mark.childNodes);
+          refresh();
+          renderComments();
+        }
       });
 
       /* ---------- Bookmarks ---------- */
@@ -2819,24 +3699,27 @@
       const openInput = $("open-input");
       function openFile(file) {
         const reader = new FileReader();
+        reader.onerror = () => toast("Couldn't read that file");
         reader.onload = () => {
-          let html;
-          if (/\.html?$/i.test(file.name)) {
-            const doc = new DOMParser().parseFromString(String(reader.result), "text/html");
-            doc.querySelectorAll("script,iframe[srcdoc],style,link,meta").forEach((n) => n.remove());
-            doc.body.querySelectorAll("*").forEach((n) => [...n.attributes].forEach((a) => { if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name); }));
-            html = doc.body.innerHTML.trim() || "<p><br></p>";
-          } else {
-            html = String(reader.result).split(/\r?\n/).map((l) => `<p>${l ? escapeHtml(l) : "<br>"}</p>`).join("");
-          }
+          const raw = String(reader.result);
+          const html = /\.html?$/i.test(file.name)
+            ? (sanitizeHtml(raw).trim() || "<p><br></p>")
+            : raw.split(/\r?\n/).map((l) => `<p>${l ? escapeHtml(l) : "<br>"}</p>`).join("");
+          if (wordCount() > 0) saveVersion("Before opening " + file.name, true);   /* nothing is lost silently */
           editor.innerHTML = html;
-          $("doc-name").value = file.name.replace(/\.[^.]+$/, "");
-          document.title = $("doc-name").value + " - OpenWriter";
+          savedRange = null;
+          const name = file.name.replace(/\.[^.]+$/, "");
+          $("doc-name").value = name;
+          document.title = name + " - OpenWriter";
+          UndoStack.reset();
           refresh();
+          renderComments();
+          Autosave.schedule();
+          toast("Opened " + file.name);
         };
         reader.readAsText(file);
       }
-      openInput.addEventListener("change", () => { if (openInput.files[0]) openFile(openInput.files[0]); openInput.value = ""; });
+            openInput.addEventListener("change", () => { if (openInput.files[0]) openFile(openInput.files[0]); openInput.value = ""; });
 
       bind("App launcher", (btn) => openMenu(btn, [
         { label: "New document", run: newDocument },
@@ -2855,9 +3738,7 @@
             const name = val(d, "#ac-name").trim();
             $("avatar").dataset.name = name;
             $("avatar").textContent = (name[0] || initial || "C").toUpperCase();
-            const dark = val(d, "#ac-theme") === "dark";
-            document.body.classList.toggle("dark", dark);
-            $("view-dark").classList.toggle("on", dark);
+            setTheme(val(d, "#ac-theme") === "dark");
           } }]);
       });
 
@@ -2879,7 +3760,6 @@
           ["Copy as text", "Plain text, ready to paste anywhere", () => copy(text(), "Text copied")],
           ["Copy as HTML", "Keeps headings, lists and formatting", () => copy(html(), "HTML copied")],
           ["Download as HTML", "A file you can send or open in a browser", () => exportDocument("html")],
-          ["Download as Word (.doc)", "Opens in Word and other editors", () => exportDocument("docx")],
           ["Download as text", "A plain .txt file", () => exportDocument("txt")],
           ["Send by email", "Opens your mail app with the text", () => { location.href = "mailto:?subject=" + encodeURIComponent(name()) + "&body=" + encodeURIComponent(text().slice(0, 1800)); }]
         ];
@@ -2912,17 +3792,9 @@
           [{ label: "Close" }, { label: "Save new version", primary: true, run: () => { saveVersion(); toast("Version saved"); } }], { wide: true });
       });
 
-      function openFeedback() {
-        openDialog("Give feedback", `<label class="f">Type</label><select id="fb-type"><option>Suggestion</option><option>Problem</option><option>Compliment</option></select>
-          <label class="f">Your feedback</label><textarea id="fb-text" placeholder="Tell us what you think…"></textarea>`,
-          [{ label: "Cancel" }, { label: "Copy", run: (d) => { navigator.clipboard && navigator.clipboard.writeText(`[${val(d, "#fb-type")}] ${val(d, "#fb-text")}`); toast("Feedback copied"); } },
-           { label: "Send by email", primary: true, run: (d) => { if (!val(d, "#fb-text").trim()) { toast("Write something first"); return false; } location.href = "mailto:?subject=" + encodeURIComponent("OpenWriter feedback: " + val(d, "#fb-type")) + "&body=" + encodeURIComponent(val(d, "#fb-text")); } }]);
-      }
-      document.querySelectorAll(".statusbar .ghost").forEach((b) => { if (/Feedback/.test(b.textContent)) b.addEventListener("click", openFeedback); });
-
       /* ---------- Command search (top bar) ---------- */
       function openSearch() {
-        const cmds = [...document.querySelectorAll(".ribbon button[title], .menu-item")].map((b) => ({ b, name: (b.title || b.textContent).replace(/\s+/g, " ").trim() })).filter((c) => c.name && !c.b.disabled);
+        const cmds = [...document.querySelectorAll(".ribbon button[title], .menu-item")].map((b) => ({ b, name: (b.title || b.textContent).replace(/\s+/g, " ").trim() })).filter((c) => c.name && !c.b.disabled && !c.b.hasAttribute("data-soon"));
         const seen = new Set();
         const uniq = cmds.filter((c) => !seen.has(c.name) && seen.add(c.name));
         const dlg = openDialog("Search tools", `<input id="cs-q" type="text" placeholder="Type a command, e.g. table, bold, margins…" autocomplete="off"><div id="cs-res" style="margin-top:8px"></div>`, [{ label: "Close" }]);
@@ -2941,10 +3813,23 @@
       $("search-box").addEventListener("keydown", (e) => { if (e.key === "Enter") openSearch(); });
       document.addEventListener("keydown", (e) => { if (e.altKey && e.key.toLowerCase() === "q") { e.preventDefault(); openSearch(); } });
 
+      /* ---------- Startup ---------- */
       setZoom(1);
+      applyPrefs();
       setMode("print");
       $("view-dark").classList.toggle("on", document.body.classList.contains("dark"));
+      $("spell-btn").classList.toggle("on", editor.spellcheck);
+      sheet.querySelectorAll(".header, .footer").forEach((el) => el.addEventListener("input", () => Autosave.schedule()));
+      UndoStack.reset();
       refresh();
+      Autosave.restore().then((restored) => {
+        if (restored) {
+          UndoStack.reset();
+          refresh();
+          renderComments();
+          toast("Restored your last session");
+        }
+      });
     })();
   </script>
 </body>

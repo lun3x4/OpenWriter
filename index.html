@@ -963,17 +963,26 @@
     #page .note { margin: 4pt 0; font-size: 9pt; }
 
     @media print {
+      /* Print the document only. On screen it lives inside a flex scroll container, which would
+         otherwise size the sheet to its longest line (no wrapping) and clip the output. */
+      html, body { display: block !important; height: auto !important; overflow: visible !important; background: #fff !important; }
       .topbar, .tabrow, .ribbon, .ruler, .statusbar, .sidebar, .nav-toggle { display: none !important; }
-      .workspace { display: block; }
-      .work-main { padding: 0; }
+      .workspace, .work-main { display: block !important; height: auto !important; overflow: visible !important; padding: 0 !important; }
       .sheet {
+        display: block !important;
+        width: auto !important;
+        max-width: none !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        zoom: 1 !important;
+        transition: none !important;
         box-shadow: none;
-        width: auto;
-        min-height: 0;
-        padding: 0;
         border-radius: 0;
         background: #fff;
       }
+      /* Paper is white whatever the screen theme: use the light-theme colours. */
+      body, body.dark { --text-page: #000; --heading: #0f4761; --heading-sub: #0f4761; --text-muted: #595959; --line: #bfbfbf; --accent: #185abd; }
       #page { color: #000; }
     }
 
@@ -1389,8 +1398,8 @@
         <svg class="ic"><use href="#i-folder"/></svg> Open…
       </button>
       <div class="menu-label">Save As</div>
-      <button class="menu-item" type="button" data-soon="Word Document (.docx) export" aria-disabled="true">
-        <svg class="ic"><use href="#i-file"/></svg> Word Document (.docx) <span class="soon-tag">Coming soon</span>
+      <button class="menu-item" type="button" data-action="export" data-format="docx">
+        <svg class="ic"><use href="#i-file"/></svg> Word Document (.docx)
       </button>
       <button class="menu-item" type="button" data-action="export" data-format="pdf">
         <svg class="ic"><use href="#i-file"/></svg> PDF
@@ -1752,7 +1761,7 @@
     <button class="ghost" type="button" data-action="feedback">Give Feedback to OpenWriter</button>
   </footer>
 
-  <input type="file" id="open-input" accept=".html,.htm,.txt,.md" hidden>
+  <input type="file" id="open-input" accept=".docx,.html,.htm,.txt,.md" hidden>
   <div class="selpop" id="sel-pop" role="toolbar" aria-label="Edit selected text">
     <select class="sp-font" id="sp-font" aria-label="Font" title="Font"><option>Aptos</option><option>Calibri</option><option>Cambria</option><option>Georgia</option><option>Arial</option><option>Times New Roman</option><option>Courier New</option></select>
     <input class="sp-size" id="sp-size" type="text" list="font-sizes" value="12" aria-label="Font size" title="Font size">
@@ -1995,16 +2004,24 @@
         Autosave.schedule();
       }
 
-      function exportDocument(format) {
+      /* File > Save As. docx and pdf are handled by the file-format section above. */
+      async function exportDocument(format) {
         closeFileMenu();
         const name = baseName();
-        if (format === "pdf") { window.print(); return; }
+        if (format === "pdf") { printDocument(); return; }
+        if (format === "docx") { await exportDocx(); return; }
         if (format === "txt") {
           triggerDownload(new Blob([docText()], { type: "text/plain;charset=utf-8" }), name + ".txt");
-        } else {
-          const html = `<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(name)}</title><style>${EXPORT_CSS}</style></head><body>\n${serializeEditor()}\n</body></html>`;
-          triggerDownload(new Blob([html], { type: "text/html;charset=utf-8" }), name + ".html");
+          return;
         }
+        /* HTML: a standalone page whose width, margins and print rules follow the page setup */
+        const [pw] = PAGE_SIZES[pageSizeName];
+        const widthIn = ((landscape ? PAGE_SIZES[pageSizeName][1] : pw) / 96).toFixed(3);
+        const marginIn = (pageMargin / 96).toFixed(3);
+        const pageCss = `@page{size:${PRINT_SIZE_NAMES[pageSizeName] || "letter"} ${landscape ? "landscape" : "portrait"};margin:${marginIn}in}` +
+          `body{box-sizing:border-box;max-width:${widthIn}in;padding:${marginIn}in}@media print{body{padding:0;max-width:none;margin:0}}`;
+        const html = `<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="generator" content="OpenWriter"><title>${escapeHtml(name)}</title><style>${EXPORT_CSS}${pageCss}</style></head><body>\n${serializeEditor()}\n</body></html>`;
+        triggerDownload(new Blob([html], { type: "text/html;charset=utf-8" }), name + ".html");
       }
 
       function insertTable() {
@@ -2472,6 +2489,7 @@
         sheet.style.width = w + "px";
         sheet.style.setProperty("--page-h", h + "px");
         paginate();
+        updatePrintPageRule();
         Autosave.schedule();
       }
 
@@ -3432,6 +3450,7 @@
         pageMargin = px;
         document.documentElement.style.setProperty("--page-margin", px + "px");
         paginate();
+        updatePrintPageRule();
         Autosave.schedule();
       }
 
@@ -3528,8 +3547,10 @@
             <li><b>Real page breaks</b> and margin presets (Layout tab).</li>
             <li><b>Quick Insert</b>: date &amp; time, placeholder text, divider and signature line (Insert tab).</li>
             <li><b>Focus mode</b> for distraction-free writing (View tab).</li>
+            <li><b>Word (.docx) import and export</b>: headings, bold / italic / underline, lists, tables, images, alignment and page setup come across (File &gt; Open, File &gt; Save As).</li>
+            <li><b>PDF export</b> follows your page size, orientation and margins.</li>
           </ul>
-          <p><small class="m">Coming soon: Word (.docx) import and export, headers and footers on every page, working footnotes, columns, track changes.</small></p>`);
+          <p><small class="m">Coming soon: headers and footers on every page, page numbers, working footnotes, columns, track changes.</small></p>`);
       }
 
       function openSettings() {
@@ -3600,6 +3621,1115 @@
           renderComments();
         }
       });
+
+      /* =====================================================================
+         FILE FORMATS (added in Phase 3)
+           A. On-demand library loader (JSZip for import, docx for export)
+           B. Word (.docx) export
+           C. Word (.docx) import
+           D. PDF / print: page size and margins
+         ===================================================================== */
+
+      /* ---------- A. On-demand library loader ---------- */
+      /* Libraries are only downloaded the first time they are needed, from pinned
+         versions on jsDelivr/cdnjs. The code is fetched as text and run as an inline
+         script: that works no matter which MIME type the CDN reports for the file. */
+      const LIBRARIES = {
+        jszip: {
+          global: "JSZip",
+          urls: [
+            "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+            "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+          ]
+        },
+        docx: {
+          global: "docx",
+          urls: [
+            "https://cdn.jsdelivr.net/npm/docx@9.6.1/dist/index.umd.cjs",
+            "https://cdn.jsdelivr.net/npm/docx@9.6.1/dist/index.iife.js"
+          ]
+        }
+      };
+      const libraryLoads = {};
+
+      function loadLibrary(name) {
+        const lib = LIBRARIES[name];
+        if (window[lib.global]) return Promise.resolve(window[lib.global]);
+        if (!libraryLoads[name]) {
+          libraryLoads[name] = (async () => {
+            let lastError = new Error("no source available");
+            for (const url of lib.urls) {
+              try {
+                const response = await fetch(url, { mode: "cors" });
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                const script = document.createElement("script");
+                script.text = (await response.text()) + "\n//# sourceURL=" + url;
+                document.head.appendChild(script);
+                script.remove();
+                if (window[lib.global]) return window[lib.global];
+                throw new Error("the library did not initialise");
+              } catch (error) {
+                lastError = error;
+              }
+            }
+            throw new Error("Couldn't download the " + name + " library (" + lastError.message + "). Check your internet connection and try again.");
+          })();
+          libraryLoads[name].catch(() => { delete libraryLoads[name]; });   /* allow a retry */
+        }
+        return libraryLoads[name];
+      }
+
+      /* ---------- B. Word (.docx) export ---------- */
+      /* Walks the editor's DOM and builds a Word document with the "docx" library.
+         Supported: headings, paragraphs, bold / italic / underline / strike / sub /
+         superscript, colour, highlight, font and size, alignment, indents, spacing,
+         bulleted / numbered / multilevel / check lists, tables (with merged cells),
+         images, links, hard page breaks, comments, bookmarks, block quotes, rules,
+         header and footer, page size / orientation / margins. */
+      const DOCX_BLOCK_TAGS = new Set(["p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "table", "blockquote", "pre", "hr", "figure", "section", "article", "aside", "nav", "main", "header", "footer"]);
+      const DOCX_BLOCK_SELECTOR = "p,div,h1,h2,h3,h4,h5,h6,ul,ol,table,blockquote,pre,hr";
+      const DOCX_LIGHT_HEADING = "0F4761";     /* heading colour of the light theme: the file is white paper */
+
+      /* "12pt" / "0.5in" / "16px" -> pixels (NaN when empty or unusable). */
+      function cssPx(value) {
+        const m = /^(-?[\d.]+)\s*(px|pt|in|cm|mm|pc)?$/.exec(String(value || "").trim());
+        if (!m) return NaN;
+        const n = parseFloat(m[1]);
+        return n * ({ pt: 96 / 72, in: 96, cm: 96 / 2.54, mm: 96 / 25.4, pc: 16 }[m[2]] || 1);
+      }
+
+      const colorProbe = document.createElement("canvas").getContext("2d");
+      /* Any CSS colour -> "RRGGBB" (null for transparent / invalid). */
+      function toHex(color) {
+        if (!color) return null;
+        colorProbe.fillStyle = "#123456";
+        colorProbe.fillStyle = color;
+        const v = colorProbe.fillStyle;
+        if (v === "#123456" && String(color).trim().toLowerCase() !== "#123456") return null;
+        if (/^#[0-9a-f]{6}$/i.test(v)) return v.slice(1).toUpperCase();
+        const m = /rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(v);
+        if (!m || (m[4] !== undefined && parseFloat(m[4]) === 0)) return null;
+        return [m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, "0")).join("").toUpperCase();
+      }
+
+      const firstFont = (family) => String(family || "").split(",")[0].replace(/["']/g, "").trim();
+
+      /* Inline formatting carried down the DOM: element -> updated format object. */
+      function docxFormat(el, fmt, ctx) {
+        const f = { ...fmt };
+        const tag = el.tagName.toLowerCase();
+        if (tag === "b" || tag === "strong") f.bold = true;
+        if (tag === "i" || tag === "em" || tag === "cite") f.italics = true;
+        if (tag === "u" || tag === "ins") f.underline = { type: ctx.D.UnderlineType.SINGLE };
+        if (tag === "s" || tag === "strike" || tag === "del") f.strike = true;
+        if (tag === "sub") f.subScript = true;
+        if (tag === "sup") f.superScript = true;
+        if (tag === "code" || tag === "kbd" || tag === "samp" || tag === "tt") f.font = "Courier New";
+        if (tag === "mark") f.shading = { type: ctx.D.ShadingType.CLEAR, fill: "FFFF00", color: "auto" };
+        if (el.classList.contains("eq")) f.italics = true;
+        if (tag === "font") {
+          if (el.getAttribute("color")) f.color = toHex(el.getAttribute("color")) || f.color;
+          if (el.getAttribute("face")) f.font = firstFont(el.getAttribute("face"));
+        }
+        const st = el.style;
+        if (st) {
+          if (st.fontWeight) f.bold = st.fontWeight === "bold" || parseInt(st.fontWeight, 10) >= 600;
+          if (st.fontStyle) f.italics = st.fontStyle === "italic";
+          const deco = st.textDecorationLine || st.textDecoration || "";
+          if (/underline/.test(deco)) f.underline = { type: ctx.D.UnderlineType.SINGLE };
+          if (/line-through/.test(deco)) f.strike = true;
+          if (st.color) f.color = toHex(st.color) || f.color;
+          const bg = toHex(st.backgroundColor);
+          if (bg) f.shading = { type: ctx.D.ShadingType.CLEAR, fill: bg, color: "auto" };
+          const size = cssPx(st.fontSize);
+          if (size > 0) f.size = Math.round(size * 0.75 * 2);          /* px -> half-points */
+          if (st.fontFamily) f.font = firstFont(st.fontFamily);
+          if (st.verticalAlign === "super") f.superScript = true;
+          if (st.verticalAlign === "sub") f.subScript = true;
+          if (st.textTransform === "uppercase") f.allCaps = true;
+        }
+        return f;
+      }
+
+      /* Inline nodes -> docx runs. `nodes` is an array of DOM nodes. */
+      async function docxInline(nodes, fmt, ctx) {
+        const { D } = ctx;
+        const out = [];
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          if (node.nodeType === 3) {
+            const text = node.nodeValue.replace(/\u00a0/g, " ").replace(/[\r\n\t]+/g, " ").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+            if (text) out.push(new D.TextRun({ text, ...fmt }));
+            continue;
+          }
+          if (node.nodeType !== 1) continue;
+          const tag = node.tagName.toLowerCase();
+          if (tag === "br") {
+            if (i !== nodes.length - 1) out.push(new D.TextRun({ break: 1, ...fmt }));   /* a trailing <br> is only a placeholder */
+            continue;
+          }
+          if (tag === "img") {
+            const run = await docxImage(node, ctx);
+            if (run) out.push(run);
+            continue;
+          }
+          if (tag === "iframe") continue;
+          const next = docxFormat(node, fmt, ctx);
+          const kids = [...node.childNodes];
+          if (tag === "a") {
+            const href = node.getAttribute("href") || "";
+            const linkFmt = { ...next, color: DOCX_LINK_COLOR, underline: { type: D.UnderlineType.SINGLE } };
+            const runs = await docxInline(kids, linkFmt, ctx);
+            if (/^(https?:|mailto:|tel:)/i.test(href)) out.push(new D.ExternalHyperlink({ link: href, children: runs }));
+            else out.push(...runs);                      /* internal "#anchor" links keep their text only */
+            continue;
+          }
+          if (node.classList.contains("comment-mark") && node.dataset.comment) {
+            const id = ctx.comments.length;
+            ctx.comments.push({ id, text: node.dataset.comment });
+            out.push(new D.CommentRangeStart(id), ...(await docxInline(kids, next, ctx)), new D.CommentRangeEnd(id),
+              new D.TextRun({ children: [new D.CommentReference(id)] }));
+            continue;
+          }
+          if (node.classList.contains("bookmark") && node.dataset.name) {
+            let id = node.dataset.name.replace(/[^A-Za-z0-9_]/g, "_");
+            if (!/^[A-Za-z]/.test(id)) id = "bm_" + id;
+            id = id.slice(0, 40);
+            if (!ctx.bookmarks.has(id)) {
+              ctx.bookmarks.add(id);
+              out.push(new D.Bookmark({ id, children: await docxInline(kids, next, ctx) }));
+              continue;
+            }
+          }
+          out.push(...(await docxInline(kids, next, ctx)));
+        }
+        return out;
+      }
+
+      const DOCX_LINK_COLOR = "0563C1";
+
+      /* Paragraph-level properties from an element's inline style. */
+      function docxParaProps(el, ctx, extra) {
+        const { D } = ctx;
+        const props = { ...(extra || {}) };
+        if (el) {
+          const st = el.style;
+          const align = st.textAlign || el.getAttribute("align");
+          const map = { left: D.AlignmentType.LEFT, center: D.AlignmentType.CENTER, right: D.AlignmentType.RIGHT, justify: D.AlignmentType.JUSTIFIED };
+          if (map[align]) props.alignment = map[align];
+
+          const indent = { ...(props.indent || {}) };
+          const left = cssPx(st.marginLeft), right = cssPx(st.marginRight), first = cssPx(st.textIndent);
+          if (left > 0) indent.left = Math.round((indent.left || 0) + left * 15);
+          if (right > 0) indent.right = Math.round(right * 15);
+          if (first > 0) indent.firstLine = Math.round(first * 15);
+          if (Object.keys(indent).length) props.indent = indent;
+
+          const spacing = { ...(props.spacing || {}) };
+          const before = cssPx(st.marginTop), after = cssPx(st.marginBottom), line = parseFloat(st.lineHeight);
+          if (before >= 0) spacing.before = Math.round(before * 15);
+          if (after >= 0) spacing.after = Math.round(after * 15);
+          if (/^[\d.]+$/.test(st.lineHeight || "") && line > 0) { spacing.line = Math.round(line * 240); spacing.lineRule = D.LineRuleType.AUTO; }
+          if (Object.keys(spacing).length) props.spacing = spacing;
+
+          const fill = toHex(st.backgroundColor);
+          if (fill) props.shading = { type: D.ShadingType.CLEAR, fill, color: "auto" };
+
+          const border = { ...(props.border || {}) };
+          [["Top", "top"], ["Bottom", "bottom"], ["Left", "left"], ["Right", "right"]].forEach(([css, key]) => {
+            const style = st["border" + css + "Style"];
+            if (style && style !== "none") {
+              border[key] = {
+                style: D.BorderStyle.SINGLE,
+                size: Math.max(2, Math.round((cssPx(st["border" + css + "Width"]) || 1) * 6)),   /* px -> eighths of a point */
+                color: toHex(st["border" + css + "Color"]) || "000000",
+                space: 4
+              };
+            }
+          });
+          if (Object.keys(border).length) props.border = border;
+          if (el.getAttribute("dir") === "rtl" || st.direction === "rtl") props.bidirectional = true;
+        }
+        if (ctx.pendingBreak) { props.pageBreakBefore = true; ctx.pendingBreak = false; }
+        return props;
+      }
+
+      /* Inserts a decoded image as an inline picture. Returns null if it can't be read. */
+      async function docxImage(img, ctx) {
+        const src = img.getAttribute("src") || "";
+        try {
+          let blob = await (await fetch(src)).blob();
+          let type = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/bmp": "bmp" }[blob.type];
+          const probe = new Image();
+          probe.src = URL.createObjectURL(blob);
+          await probe.decode().catch(() => {});
+          let naturalW = probe.naturalWidth || 300, naturalH = probe.naturalHeight || 150;
+          if (!type) {                                    /* webp, svg ...: Word needs a bitmap */
+            const canvas = document.createElement("canvas");
+            canvas.width = naturalW; canvas.height = naturalH;
+            canvas.getContext("2d").drawImage(probe, 0, 0, naturalW, naturalH);
+            blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+            type = "png";
+          }
+          URL.revokeObjectURL(probe.src);
+          let w = cssPx(img.style.width) || parseFloat(img.getAttribute("width")) || naturalW;
+          let h = cssPx(img.style.height) || parseFloat(img.getAttribute("height")) || (w * naturalH / naturalW);
+          if (w > ctx.contentPx) { h = h * ctx.contentPx / w; w = ctx.contentPx; }
+          const alt = img.getAttribute("alt") || "";
+          return new ctx.D.ImageRun({
+            type,
+            data: new Uint8Array(await blob.arrayBuffer()),
+            transformation: { width: Math.max(1, Math.round(w)), height: Math.max(1, Math.round(h)) },
+            altText: { name: "image", description: alt, title: alt }
+          });
+        } catch (error) {
+          ctx.warnings.push("An image could not be included");
+          return null;
+        }
+      }
+
+      /* Container -> list of docx block objects (paragraphs, tables). */
+      async function docxBlocks(container, ctx, opts = {}) {
+        const { D } = ctx;
+        const out = [];
+        const base = opts.fmt || {};
+        const extra = opts.extra || {};
+        let pending = [];
+        const flush = async () => {
+          const nodes = pending;
+          pending = [];
+          if (!nodes.length || nodes.every((n) => n.nodeType === 3 && !n.nodeValue.trim())) return;
+          out.push(new D.Paragraph({ ...docxParaProps(null, ctx, extra), children: await docxInline(nodes, base, ctx) }));
+        };
+        for (const node of container.childNodes) {
+          if (node.nodeType === 3) { pending.push(node); continue; }
+          if (node.nodeType !== 1) continue;
+          const tag = node.tagName.toLowerCase();
+          if (!DOCX_BLOCK_TAGS.has(tag)) { pending.push(node); continue; }
+          await flush();
+          out.push(...(await docxBlock(node, tag, ctx, base, extra)));
+        }
+        await flush();
+        return out;
+      }
+
+      async function docxBlock(el, tag, ctx, base, extra) {
+        const { D } = ctx;
+        const cls = el.classList;
+        const kids = () => [...el.childNodes];
+        if (cls.contains("page-break")) { ctx.pendingBreak = true; return []; }
+        if (cls.contains("toc")) return docxToc(el, ctx);
+        if (cls.contains("video-embed")) {
+          const frame = el.querySelector("iframe,video");
+          const url = frame ? (frame.getAttribute("src") || "") : "";
+          if (!/^https?:/i.test(url)) return [];
+          return [new D.Paragraph({ ...docxParaProps(null, ctx, extra), children: [
+            new D.TextRun({ text: "Video: " }),
+            new D.ExternalHyperlink({ link: url, children: [new D.TextRun({ text: url, color: DOCX_LINK_COLOR, underline: { type: D.UnderlineType.SINGLE } })] })] })];
+        }
+        if (cls.contains("note")) {
+          return [new D.Paragraph({ ...docxParaProps(null, ctx, extra), children: await docxInline(kids(), { ...base, size: 18 }, ctx) })];
+        }
+        if (tag === "hr") {
+          return [new D.Paragraph({ ...docxParaProps(null, ctx, extra), border: { bottom: { style: D.BorderStyle.SINGLE, size: 6, color: "808080", space: 1 } } })];
+        }
+        if (tag === "ul" || tag === "ol") return docxList(el, ctx, 0, null, base, extra);
+        if (tag === "table") return docxTable(el, ctx, base);
+        if (tag === "blockquote") {
+          return docxBlocks(el, ctx, {
+            fmt: { ...base, italics: true, color: "595959" },
+            extra: { ...extra, indent: { left: 480 }, border: { left: { style: D.BorderStyle.SINGLE, size: 18, color: "BFBFBF", space: 8 } } }
+          });
+        }
+        if (tag === "pre") {
+          const lines = el.textContent.replace(/\n$/, "").split("\n");
+          const runs = lines.map((line, i) => new D.TextRun({ text: line, font: "Courier New", break: i ? 1 : 0 }));
+          return [new D.Paragraph({ ...docxParaProps(el, ctx, extra), children: runs })];
+        }
+        if (/^h[1-6]$/.test(tag)) {
+          return [new D.Paragraph({
+            ...docxParaProps(el, ctx, extra),
+            heading: D.HeadingLevel["HEADING_" + tag[1]],
+            children: await docxInline(kids(), base, ctx)
+          })];
+        }
+        if (el.querySelector(DOCX_BLOCK_SELECTOR)) return docxBlocks(el, ctx, { fmt: docxFormat(el, base, ctx), extra });   /* div / section wrappers */
+        return [new D.Paragraph({ ...docxParaProps(el, ctx, extra), children: await docxInline(kids(), docxFormat(el, base, ctx), ctx) })];
+      }
+
+      /* The generated table of contents is exported as plain text: its page numbers
+         are placeholders in the editor, so they would be wrong in Word. */
+      async function docxToc(el, ctx) {
+        const { D } = ctx;
+        const out = [];
+        const title = el.querySelector(".toc-title");
+        if (title) out.push(new D.Paragraph({ ...docxParaProps(null, ctx, {}), spacing: { after: 120 }, children: [new D.TextRun({ text: title.textContent, bold: true, size: 28 })] }));
+        el.querySelectorAll("a").forEach((a) => {
+          const label = a.firstElementChild ? a.firstElementChild.textContent : a.textContent;
+          out.push(new D.Paragraph({ indent: { left: Math.max(0, cssPx(a.style.marginLeft) || 0) * 15 }, spacing: { after: 40 }, children: [new D.TextRun({ text: label })] }));
+        });
+        return out;
+      }
+
+      /* Lists: every top-level <ol> gets its own numbering instance so it restarts at 1. */
+      async function docxList(listEl, ctx, level, parentInstance, base, extra) {
+        const { D } = ctx;
+        const ordered = listEl.tagName === "OL";
+        const isCheck = listEl.classList.contains("check");
+        const reference = ordered ? (listEl.classList.contains("ml") ? "ow-multi" : "ow-numbered") : "ow-bullets";
+        const instance = ordered ? (parentInstance !== null && level > 0 ? parentInstance : ++ctx.listCounter) : null;
+        const lvl = Math.min(level, 8);
+        const out = [];
+        for (const li of listEl.children) {
+          if (li.tagName !== "LI") continue;
+          const own = [];
+          const nested = [];
+          for (const child of li.childNodes) {
+            if (child.nodeType === 1 && (child.tagName === "UL" || child.tagName === "OL")) nested.push(child);
+            else if (child.nodeType === 1 && (child.tagName === "P" || child.tagName === "DIV")) own.push(...child.childNodes);
+            else own.push(child);
+          }
+          const done = isCheck && li.classList.contains("done");
+          const fmt = done ? { ...base, strike: true, color: "7F7F7F" } : base;
+          const numbering = isCheck
+            ? { reference: done ? "ow-check-1" : "ow-check-0", level: lvl }
+            : (ordered ? { reference, level: lvl, instance } : { reference, level: lvl });
+          out.push(new D.Paragraph({
+            ...docxParaProps(li, ctx, { ...extra, spacing: { after: 60 } }),
+            numbering,
+            children: await docxInline(own, fmt, ctx)
+          }));
+          for (const sub of nested) out.push(...(await docxList(sub, ctx, level + 1, instance, base, extra)));
+        }
+        return out;
+      }
+
+      /* Tables, including merged cells (colspan / rowspan) and column widths. */
+      async function docxTable(tbl, ctx, base) {
+        const { D } = ctx;
+        const out = [];
+        if (ctx.pendingBreak) { out.push(new D.Paragraph({ children: [new D.PageBreak()] })); ctx.pendingBreak = false; }
+        const rows = [...tbl.rows];
+        if (!rows.length) return out;
+        const span = (cell) => Math.max(1, cell.colSpan || 1);
+        const colCount = Math.max(...rows.map((r) => [...r.cells].reduce((n, c) => n + span(c), 0)));
+        const firstCells = [...rows[0].cells];
+        let colPx = Array(colCount).fill(1);
+        if (firstCells.reduce((n, c) => n + span(c), 0) === colCount) {
+          colPx = [];
+          firstCells.forEach((c) => { const w = c.getBoundingClientRect().width || 1; for (let i = 0; i < span(c); i++) colPx.push(w / span(c)); });
+        }
+        const totalPx = colPx.reduce((a, b) => a + b, 0);
+        const colTw = colPx.map((w) => Math.max(300, Math.round(w / totalPx * ctx.contentTw)));
+        const line = { style: D.BorderStyle.SINGLE, size: 4, color: "8C8C8C" };
+
+        const occupied = Array(colCount).fill(0);          /* columns still covered by a row-spanning cell */
+        const tableRows = [];
+        for (const row of rows) {
+          const cells = [];
+          let col = 0;
+          for (const cell of row.cells) {
+            while (col < colCount && occupied[col] > 0) col++;
+            const cs = span(cell), rs = Math.max(1, cell.rowSpan || 1);
+            const width = colTw.slice(col, col + cs).reduce((a, b) => a + b, 0);
+            for (let i = 0; i < cs; i++) occupied[col + i] = rs;
+            col += cs;
+            const isHeader = cell.tagName === "TH";
+            const fill = toHex(cell.style.backgroundColor) || (isHeader ? "F2F2F2" : null);
+            let content = await docxBlocks(cell, ctx, { fmt: isHeader ? { ...base, bold: true } : base });
+            if (!content.length || !(content[content.length - 1] instanceof D.Paragraph)) content.push(new D.Paragraph({}));
+            cells.push(new D.TableCell({
+              children: content,
+              width: { size: width, type: D.WidthType.DXA },
+              columnSpan: cs > 1 ? cs : undefined,
+              rowSpan: rs > 1 ? rs : undefined,
+              shading: fill ? { type: D.ShadingType.CLEAR, fill, color: "auto" } : undefined
+            }));
+          }
+          for (let i = 0; i < colCount; i++) if (occupied[i] > 0) occupied[i]--;
+          tableRows.push(new D.TableRow({ children: cells, tableHeader: [...row.cells].length > 0 && [...row.cells].every((c) => c.tagName === "TH") }));
+        }
+        out.push(new D.Table({
+          rows: tableRows,
+          columnWidths: colTw,
+          width: { size: colTw.reduce((a, b) => a + b, 0), type: D.WidthType.DXA },
+          layout: D.TableLayoutType.FIXED,
+          borders: { top: line, bottom: line, left: line, right: line, insideHorizontal: line, insideVertical: line }
+        }));
+        return out;
+      }
+
+      function docxNumbering(D) {
+        const levels = (make) => [0, 1, 2, 3, 4, 5, 6, 7, 8].map(make);
+        const hang = (i) => ({ paragraph: { indent: { left: 720 + i * 360, hanging: 360 } } });
+        const bullets = ["\u2022", "\u25E6", "\u25AA"];
+        const numFmt = ["decimal", "lowerLetter", "lowerRoman"];
+        return { config: [
+          { reference: "ow-bullets", levels: levels((i) => ({ level: i, format: D.LevelFormat.BULLET, text: bullets[i % 3], alignment: D.AlignmentType.LEFT, style: hang(i) })) },
+          { reference: "ow-numbered", levels: levels((i) => ({ level: i, format: D.LevelFormat.DECIMAL, text: "%" + (i + 1) + ".", alignment: D.AlignmentType.LEFT, style: hang(i) })) },
+          { reference: "ow-multi", levels: levels((i) => ({ level: i, format: { decimal: D.LevelFormat.DECIMAL, lowerLetter: D.LevelFormat.LOWER_LETTER, lowerRoman: D.LevelFormat.LOWER_ROMAN }[numFmt[i % 3]], text: "%" + (i + 1) + ".", alignment: D.AlignmentType.LEFT, style: hang(i) })) },
+          { reference: "ow-check-0", levels: levels((i) => ({ level: i, format: D.LevelFormat.BULLET, text: "\u2610", alignment: D.AlignmentType.LEFT, style: { ...hang(i), run: { font: "Segoe UI Symbol" } } })) },
+          { reference: "ow-check-1", levels: levels((i) => ({ level: i, format: D.LevelFormat.BULLET, text: "\u2611", alignment: D.AlignmentType.LEFT, style: { ...hang(i), run: { font: "Segoe UI Symbol" } } })) }
+        ] };
+      }
+
+      async function buildDocxBlob() {
+        const D = await loadLibrary("docx");
+        const [pw, ph] = PAGE_SIZES[pageSizeName];                       /* portrait pixels */
+        const widthPx = landscape ? ph : pw;
+        const author = $("avatar").dataset.name || "OpenWriter";
+        const ctx = {
+          D, comments: [], bookmarks: new Set(), warnings: [], listCounter: 0, pendingBreak: false,
+          contentPx: widthPx - 2 * pageMargin,
+          contentTw: (widthPx - 2 * pageMargin) * 15
+        };
+
+        const body = await docxBlocks(editor, ctx);
+        if (ctx.pendingBreak) body.push(new D.Paragraph({ children: [new D.PageBreak()] }));
+        if (!body.length || !(body[body.length - 1] instanceof D.Paragraph)) body.push(new D.Paragraph({}));   /* Word needs a closing paragraph */
+
+        const section = {
+          properties: { page: {
+            size: { width: pw * 15, height: ph * 15, orientation: landscape ? D.PageOrientation.LANDSCAPE : D.PageOrientation.PORTRAIT },
+            margin: { top: pageMargin * 15, right: pageMargin * 15, bottom: pageMargin * 15, left: pageMargin * 15, header: 720, footer: 720 }
+          } },
+          children: body
+        };
+        if (document.body.classList.contains("show-hf")) {
+          const part = async (selector) => {
+            const el = sheet.querySelector(selector);
+            const kids = el ? await docxBlocks(el, ctx) : [];
+            return kids.length ? kids : [new D.Paragraph({})];
+          };
+          section.headers = { default: new D.Header({ children: await part(".header") }) };
+          section.footers = { default: new D.Footer({ children: await part(".footer") }) };
+        }
+
+        const heading = (size, extraRun, before) => ({
+          run: { font: "Calibri", size, bold: true, color: DOCX_LIGHT_HEADING, ...extraRun },
+          paragraph: { spacing: { before, after: 80, line: 288 } }
+        });
+        const options = {
+          creator: author,
+          title: baseName(),
+          description: "Created with OpenWriter",
+          styles: { default: {
+            document: { run: { font: "Calibri", size: 22 }, paragraph: { spacing: { after: 160, line: 360 } } },
+            heading1: heading(40, {}, 320),
+            heading2: heading(32, {}, 280),
+            heading3: heading(26, { italics: true }, 240),
+            heading4: heading(24, {}, 240),
+            heading5: heading(22, {}, 200),
+            heading6: heading(22, { italics: true }, 200)
+          } },
+          numbering: docxNumbering(D),
+          sections: [section]
+        };
+        if (ctx.comments.length) {
+          options.comments = { children: ctx.comments.map((c) => ({
+            id: c.id, author, date: new Date(),
+            children: [new D.Paragraph({ children: [new D.TextRun({ text: c.text })] })]
+          })) };
+        }
+        const pageColor = toHex(sheet.style.getPropertyValue("--bg-page").trim());
+        if (pageColor && pageColor !== "FFFFFF") options.background = { color: pageColor };
+
+        const blob = await D.Packer.toBlob(new D.Document(options));
+        return { blob, warnings: ctx.warnings };
+      }
+
+      async function exportDocx() {
+        toast("Preparing Word document…");
+        try {
+          const { blob, warnings } = await buildDocxBlob();
+          triggerDownload(blob, baseName() + ".docx");
+          toast(warnings.length ? "Word document saved (" + warnings[0].toLowerCase() + ")" : "Word document saved");
+        } catch (error) {
+          console.error("OpenWriter: .docx export failed", error);
+          toast("Couldn't create the Word file: " + error.message);
+        }
+      }
+
+      /* ---------- C. Word (.docx) import ---------- */
+      /* A .docx is a zip of XML parts. This reader handles what the editor can show:
+         headings, paragraphs, bold / italic / underline / strike / sub / superscript,
+         colour, highlight, size, alignment, indents, spacing, bulleted and numbered
+         lists (nested, with restarts and continuing numbering), tables with merged
+         cells, images, hyperlinks, page breaks, footnotes / endnotes and the page
+         setup (size, orientation, margin). Anything else keeps its text. */
+      const W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+      const R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+      const A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main";
+      const WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+      const VML_NS = "urn:schemas-microsoft-com:vml";
+      const MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+
+      const wKids = (el, name) => (el ? [...el.children].filter((c) => c.localName === name && c.namespaceURI === W_NS) : []);
+      const wKid = (el, name) => wKids(el, name)[0] || null;
+      const wAttr = (el, name) => (el ? (el.getAttributeNS(W_NS, name) ?? el.getAttribute("w:" + name)) : null);
+
+      /* A property element such as <w:bidi/> is ON unless it says w:val="0" / "false" / "off". */
+      function wOn(el) {
+        if (!el) return false;
+        const v = wAttr(el, "val");
+        return !(v === "0" || v === "false" || v === "off");
+      }
+
+      function docxXml(text) {
+        const doc = new DOMParser().parseFromString(text, "application/xml");
+        if (doc.getElementsByTagName("parsererror").length) throw new Error("The document XML is damaged.");
+        return doc;
+      }
+
+      /* Run properties -> only the values that are actually set. */
+      function docxReadRPr(rPr) {
+        const out = {};
+        if (!rPr) return out;
+        const flag = (name) => {
+          const e = wKid(rPr, name);
+          return e ? wOn(e) : undefined;
+        };
+        const set = (key, value) => { if (value !== undefined) out[key] = value; };
+        set("b", flag("b"));
+        set("i", flag("i"));
+        set("s", flag("strike") ?? flag("dstrike"));
+        set("caps", flag("caps"));
+        set("hidden", flag("vanish"));
+        const u = wKid(rPr, "u");
+        if (u) set("u", wAttr(u, "val") !== "none");
+        const va = wAttr(wKid(rPr, "vertAlign"), "val");
+        if (va === "superscript") out.sup = true;
+        if (va === "subscript") out.sub = true;
+        const color = wAttr(wKid(rPr, "color"), "val");
+        if (color && /^[0-9a-f]{6}$/i.test(color) && color.toLowerCase() !== "000000") out.color = "#" + color;
+        const hl = wAttr(wKid(rPr, "highlight"), "val");
+        const HL = { yellow: "#ffff00", green: "#00ff00", cyan: "#00ffff", magenta: "#ff00ff", blue: "#0000ff", red: "#ff0000", darkBlue: "#000080", darkCyan: "#008080", darkGreen: "#008000", darkMagenta: "#800080", darkRed: "#800000", darkYellow: "#808000", darkGray: "#808080", lightGray: "#c0c0c0", black: "#000000" };
+        if (hl && HL[hl]) out.bg = HL[hl];
+        const shd = wAttr(wKid(rPr, "shd"), "fill");
+        if (!out.bg && shd && /^[0-9a-f]{6}$/i.test(shd)) out.bg = "#" + shd;
+        const sz = parseInt(wAttr(wKid(rPr, "sz"), "val"), 10);
+        if (sz > 0) out.size = sz / 2;
+        const fonts = wKid(rPr, "rFonts");
+        const font = fonts && (wAttr(fonts, "ascii") || wAttr(fonts, "hAnsi"));
+        if (font) out.font = font;
+        return out;
+      }
+
+      function docxParseStyles(xml) {
+        const styles = {};
+        if (!xml) return styles;
+        for (const s of docxXml(xml).getElementsByTagNameNS(W_NS, "style")) {
+          const id = wAttr(s, "styleId");
+          if (!id) continue;
+          const pPr = wKid(s, "pPr");
+          const numPr = pPr && wKid(pPr, "numPr");
+          const outline = pPr && wKid(pPr, "outlineLvl");
+          styles[id] = {
+            name: (wAttr(wKid(s, "name"), "val") || "").toLowerCase(),
+            basedOn: wAttr(wKid(s, "basedOn"), "val"),
+            jc: pPr ? wAttr(wKid(pPr, "jc"), "val") : null,
+            outline: outline ? parseInt(wAttr(outline, "val"), 10) : null,
+            numId: numPr && wKid(numPr, "numId") ? wAttr(wKid(numPr, "numId"), "val") : null,
+            ilvl: numPr && wKid(numPr, "ilvl") ? parseInt(wAttr(wKid(numPr, "ilvl"), "val"), 10) : null,
+            rPr: docxReadRPr(wKid(s, "rPr"))
+          };
+        }
+        return styles;
+      }
+
+      /* A style and everything it is based on, most specific first. */
+      function docxStyleChain(styles, id) {
+        const chain = [];
+        for (let cur = id, n = 0; cur && styles[cur] && n < 12; cur = styles[cur].basedOn, n++) chain.push(styles[cur]);
+        return chain;
+      }
+
+      function docxParseNumbering(xml) {
+        const result = { nums: {}, abstract: {} };
+        if (!xml) return result;
+        const doc = docxXml(xml);
+        for (const a of doc.getElementsByTagNameNS(W_NS, "abstractNum")) {
+          const levels = {};
+          for (const l of wKids(a, "lvl")) {
+            levels[wAttr(l, "ilvl")] = {
+              fmt: wAttr(wKid(l, "numFmt"), "val"),
+              start: parseInt(wAttr(wKid(l, "start"), "val"), 10) || 1
+            };
+          }
+          result.abstract[wAttr(a, "abstractNumId")] = levels;
+        }
+        for (const n of doc.getElementsByTagNameNS(W_NS, "num")) {
+          result.nums[wAttr(n, "numId")] = { abstractId: wAttr(wKid(n, "abstractNumId"), "val") };
+        }
+        return result;
+      }
+
+      function docxParseRels(xml) {
+        const rels = {};
+        if (!xml) return rels;
+        for (const r of docxXml(xml).documentElement.children) rels[r.getAttribute("Id")] = { target: r.getAttribute("Target") || "", external: r.getAttribute("TargetMode") === "External" };
+        return rels;
+      }
+
+      /* Footnotes / endnotes -> { id: plain text } */
+      function docxParseNotes(xml, tag) {
+        const notes = {};
+        if (!xml) return notes;
+        for (const n of docxXml(xml).getElementsByTagNameNS(W_NS, tag)) {
+          const type = wAttr(n, "type");
+          if (type === "separator" || type === "continuationSeparator") continue;
+          notes[wAttr(n, "id")] = [...n.getElementsByTagNameNS(W_NS, "p")]
+            .map((p) => [...p.getElementsByTagNameNS(W_NS, "t")].map((t) => t.textContent).join(""))
+            .join(" ").trim();
+        }
+        return notes;
+      }
+
+      /* Expands content controls and tracked-insertion wrappers around blocks. */
+      function docxFlatten(parent) {
+        const out = [];
+        for (const el of parent.children) {
+          if (el.namespaceURI !== W_NS) continue;
+          if (el.localName === "sdt") { const c = wKid(el, "sdtContent"); if (c) out.push(...docxFlatten(c)); }
+          else if (el.localName === "customXml" || el.localName === "ins") out.push(...docxFlatten(el));
+          else if (el.localName === "del") continue;
+          else out.push(el);
+        }
+        return out;
+      }
+
+      async function docxImageHtml(rid, ctx, widthPx, alt) {
+        const rel = ctx.rels[rid];
+        if (rel && rel.external) { ctx.warnings.add("Skipped a picture that is linked, not embedded, in the Word file"); return null; }
+        if (!rel) return null;
+        let path = rel.target.startsWith("/") ? rel.target.slice(1) : "word/" + rel.target;
+        while (/[^/]+\/\.\.\//.test(path)) path = path.replace(/[^/]+\/\.\.\//, "");
+        const ext = (path.split(".").pop() || "").toLowerCase();
+        const mime = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", bmp: "image/bmp", webp: "image/webp" }[ext];
+        if (!mime) { ctx.warnings.add("Skipped " + (ext ? "." + ext : "an unsupported") + " image(s) the browser can't display"); return null; }
+        const file = ctx.zip.file(path);
+        if (!file) return null;
+        const b64 = await file.async("base64");
+        const style = widthPx > 0 ? ` style="width:${Math.round(widthPx)}px"` : "";
+        return `<img src="data:${mime};base64,${b64}"${alt ? ` alt="${escapeHtml(alt)}"` : ""}${style}>`;
+      }
+
+      /* Run children (text, tabs, breaks, pictures, note references) -> segments. */
+      async function docxRunChildren(container, ctx, fmt, link, segs) {
+        for (const c of container.children) {
+          const ns = c.namespaceURI;
+          const name = c.localName;
+          if (ns === MC_NS && name === "AlternateContent") {
+            const choice = [...c.children].find((x) => x.localName === "Choice");
+            if (choice) await docxRunChildren(choice, ctx, fmt, link, segs);
+            continue;
+          }
+          if (ns !== W_NS) continue;
+          const field = ctx.fields[ctx.fields.length - 1];
+          if (name === "fldChar") {
+            const type = wAttr(c, "fldCharType");
+            if (type === "begin") ctx.fields.push({ instr: "", result: false });
+            else if (type === "separate" && field) field.result = true;
+            else if (type === "end") ctx.fields.pop();
+            continue;
+          }
+          if (name === "instrText") { if (field && !field.result) field.instr += c.textContent; continue; }
+          if (field && !field.result) continue;                 /* field instructions are not content */
+          const fieldLink = field && /HYPERLINK\s+"([^"]+)"/i.exec(field.instr);
+          const activeLink = link || (fieldLink ? fieldLink[1] : null);
+          if (name === "t") segs.push({ t: c.textContent, fmt, link: activeLink });
+          else if (name === "tab") segs.push({ t: "\t", fmt, link: activeLink });
+          else if (name === "noBreakHyphen") segs.push({ t: "\u2011", fmt, link: activeLink });
+          else if (name === "br" || name === "cr") {
+            const type = wAttr(c, "type");
+            segs.push(type === "page" ? { pageBreak: true } : { raw: "<br>" });
+          } else if (name === "footnoteReference" || name === "endnoteReference") {
+            const kind = name === "footnoteReference" ? "Footnote" : "Endnote";
+            const text = (kind === "Footnote" ? ctx.footnotes : ctx.endnotes)[wAttr(c, "id")];
+            if (text !== undefined) {
+              const n = ++ctx.noteCount;
+              ctx.noteList.push({ n, kind, text });
+              segs.push({ raw: `<sup>${n}</sup>` });
+            }
+          } else if (name === "drawing") {
+            const blip = c.getElementsByTagNameNS(A_NS, "blip")[0];
+            const extent = c.getElementsByTagNameNS(WP_NS, "extent")[0];
+            const docPr = c.getElementsByTagNameNS(WP_NS, "docPr")[0];
+            if (blip) {
+              const html = await docxImageHtml(blip.getAttributeNS(R_NS, "embed") || blip.getAttributeNS(R_NS, "link"), ctx, extent ? parseInt(extent.getAttribute("cx"), 10) / 9525 : 0, docPr ? docPr.getAttribute("descr") || "" : "");
+              if (html) segs.push({ raw: html });
+            }
+          } else if (name === "pict") {
+            const data = c.getElementsByTagNameNS(VML_NS, "imagedata")[0];
+            if (data) {
+              const html = await docxImageHtml(data.getAttributeNS(R_NS, "id"), ctx, 0, "");
+              if (html) segs.push({ raw: html });
+            }
+          }
+        }
+      }
+
+      /* Paragraph (or hyperlink / tracked-change wrapper) children -> segments. */
+      async function docxSegments(parent, ctx, paraFmt, link, segs = []) {
+        for (const el of parent.children) {
+          if (el.namespaceURI !== W_NS) continue;
+          switch (el.localName) {
+            case "r": {
+              const rPr = wKid(el, "rPr");
+              const charStyle = rPr ? wAttr(wKid(rPr, "rStyle"), "val") : null;
+              const fromChar = {};
+              docxStyleChain(ctx.styles, charStyle).reverse().forEach((s) => Object.assign(fromChar, s.rPr));
+              const fmt = { ...paraFmt, ...fromChar, ...docxReadRPr(rPr) };
+              if (fmt.hidden) break;
+              await docxRunChildren(el, ctx, fmt, link, segs);
+              break;
+            }
+            case "hyperlink": {
+              const rid = el.getAttributeNS(R_NS, "id");
+              const anchor = wAttr(el, "anchor");
+              const href = rid && ctx.rels[rid] ? ctx.rels[rid].target : (anchor ? "#" + anchor : null);
+              await docxSegments(el, ctx, paraFmt, href, segs);
+              break;
+            }
+            case "fldSimple": {
+              const m = /HYPERLINK\s+"([^"]+)"/i.exec(wAttr(el, "instr") || "");
+              await docxSegments(el, ctx, paraFmt, m ? m[1] : link, segs);
+              break;
+            }
+            case "ins": case "smartTag": case "moveTo":
+              await docxSegments(el, ctx, paraFmt, link, segs);
+              break;
+            case "sdt": {
+              const content = wKid(el, "sdtContent");
+              if (content) await docxSegments(content, ctx, paraFmt, link, segs);
+              break;
+            }
+            default: break;      /* del, proofErr, bookmarks, comment ranges ... */
+          }
+        }
+        return segs;
+      }
+
+      const SAFE_LINK = /^(https?:|mailto:|tel:|#)/i;
+      const docxEsc = (t) => escapeHtml(t).replace(/\t/g, "\u2003").replace(/ {2,}/g, (m) => " " + "\u00a0".repeat(m.length - 1));
+
+      /* Segments -> HTML, merging neighbours that share the same formatting. */
+      function docxRenderSegments(segs, isHeading) {
+        const merged = [];
+        for (const s of segs) {
+          if (s.t !== undefined) {
+            const fmt = { ...s.fmt };
+            if (isHeading) delete fmt.b;
+            if (s.link) { delete fmt.u; delete fmt.color; }
+            const key = JSON.stringify([fmt, s.link]);
+            const last = merged[merged.length - 1];
+            if (last && last.key === key) last.t += s.t;
+            else merged.push({ t: s.t, fmt, link: s.link, key });
+          } else merged.push(s);
+        }
+        return merged.map((s) => {
+          if (s.raw !== undefined) return s.raw;
+          if (s.pageBreak) return "\uE000";
+          let h = docxEsc(s.t);
+          const f = s.fmt;
+          if (f.sup) h = `<sup>${h}</sup>`;
+          if (f.sub) h = `<sub>${h}</sub>`;
+          if (f.s) h = `<s>${h}</s>`;
+          if (f.u) h = `<u>${h}</u>`;
+          if (f.i) h = `<i>${h}</i>`;
+          if (f.b) h = `<b>${h}</b>`;
+          const css = [];
+          if (f.color) css.push("color:" + f.color);
+          if (f.bg) css.push("background-color:" + f.bg);
+          if (f.size && f.size !== 11) css.push("font-size:" + f.size + "pt");
+          if (f.font && !/^(calibri|aptos)/i.test(f.font)) css.push("font-family:'" + f.font.replace(/['"<>&]/g, "") + "'");
+          if (f.caps) css.push("text-transform:uppercase");
+          if (css.length) h = `<span style="${css.join(";")}">${h}</span>`;
+          if (s.link && SAFE_LINK.test(s.link)) h = `<a href="${escapeHtml(s.link)}">${h}</a>`;
+          return h;
+        }).join("");
+      }
+
+      const PAGE_BREAK_HTML = '<div class="page-break" contenteditable="false">Page Break</div>';
+
+      /* One <w:p> -> { kind: "list" | "block", html, ... } */
+      async function docxParagraph(p, ctx) {
+        const pPr = wKid(p, "pPr");
+        const styleId = pPr ? wAttr(wKid(pPr, "pStyle"), "val") : null;
+        const chain = docxStyleChain(ctx.styles, styleId);
+
+        let heading = 0;
+        for (const s of chain) {
+          const m = /^(?:heading|titre|überschrift)\s*(\d)$/.exec(s.name);
+          if (m) { heading = Math.min(parseInt(m[1], 10), 3); break; }
+          if (s.name === "title") { heading = 1; break; }
+          if (s.outline !== null && s.outline >= 0 && s.outline < 9) { heading = Math.min(s.outline + 1, 3); break; }
+        }
+        if (!heading && styleId) { const m = /^Heading(\d)$/.exec(styleId); if (m) heading = Math.min(parseInt(m[1], 10), 3); }
+        const quote = chain.some((s) => /^(quote|intense quote|block text)$/.test(s.name));
+
+        let jc = pPr ? wAttr(wKid(pPr, "jc"), "val") : null;
+        if (!jc) { const s = chain.find((x) => x.jc); jc = s ? s.jc : null; }
+        const align = { center: "center", right: "right", end: "right", both: "justify", distribute: "justify" }[jc] || null;
+
+        /* list membership: direct numPr wins, then the paragraph style's */
+        let numId = null, ilvl = 0;
+        const numPr = pPr && wKid(pPr, "numPr");
+        if (numPr && wKid(numPr, "numId")) { numId = wAttr(wKid(numPr, "numId"), "val"); ilvl = parseInt(wAttr(wKid(numPr, "ilvl"), "val"), 10) || 0; }
+        else { const s = chain.find((x) => x.numId); if (s) { numId = s.numId; ilvl = s.ilvl || 0; } }
+        if (numId === "0") numId = null;
+        if (numId !== null && !ilvl) {
+          const named = chain.map((s) => /^list (?:bullet|number|continue|paragraph)?\s*(\d)$/.exec(s.name)).find(Boolean);
+          if (named) ilvl = Math.max(0, parseInt(named[1], 10) - 1);
+        }
+
+        const paraFmt = {};
+        if (!heading && !quote) {                        /* headings / quotes already have their own look */
+          chain.slice().reverse().forEach((s) => { ["b", "i", "u", "s"].forEach((k) => { if (s.rPr[k] !== undefined) paraFmt[k] = s.rPr[k]; }); });
+        }
+
+        const segs = await docxSegments(p, ctx, paraFmt, null);
+        const html = docxRenderSegments(segs, !!heading);
+        const css = [];
+        if (align) css.push("text-align:" + align);
+        const sp = pPr && wKid(pPr, "spacing");
+        if (sp) {
+          const before = parseInt(wAttr(sp, "before"), 10), after = parseInt(wAttr(sp, "after"), 10), line = parseInt(wAttr(sp, "line"), 10);
+          if (before >= 0 && !heading) css.push("margin-top:" + (before / 20) + "pt");
+          if (after >= 0 && !heading) css.push("margin-bottom:" + (after / 20) + "pt");
+          if (line > 0 && (wAttr(sp, "lineRule") || "auto") === "auto" && !heading) css.push("line-height:" + (line / 240).toFixed(2));
+        }
+        const shd = pPr && wAttr(wKid(pPr, "shd"), "fill");
+        if (shd && /^[0-9a-f]{6}$/i.test(shd)) css.push("background:#" + shd);
+
+        if (numId !== null) {
+          const lvl = docxNumLevel(ctx.numbering, numId, ilvl);
+          const fmt = lvl ? lvl.fmt : "bullet";
+          const ordered = !(fmt === "bullet" || fmt === "none");
+          return { kind: "list", numId, level: ilvl, ordered, fmt, start: lvl ? lvl.start : 1, html, css: css.filter((c) => c.startsWith("text-align")) };
+        }
+
+        const ind = pPr && wKid(pPr, "ind");
+        if (ind && !heading) {
+          const left = parseInt(wAttr(ind, "left") ?? wAttr(ind, "start"), 10), first = parseInt(wAttr(ind, "firstLine"), 10);
+          if (left > 0) css.push("margin-left:" + Math.round(left / 15) + "px");
+          if (first > 0) css.push("text-indent:" + Math.round(first / 15) + "px");
+        }
+        const attrs = (css.length ? ` style="${css.join(";")}"` : "") + (pPr && wOn(wKid(pPr, "bidi")) ? ' dir="rtl"' : "");
+        const tag = heading ? "h" + heading : quote ? "blockquote" : "p";
+
+        /* page breaks inside the paragraph split it into pieces */
+        const pieces = html.split("\uE000");
+        let out = pPr && wOn(wKid(pPr, "pageBreakBefore")) ? PAGE_BREAK_HTML : "";
+        pieces.forEach((piece, i) => {
+          if (i > 0) out += PAGE_BREAK_HTML;
+          const empty = !piece.replace(/<[^>]*>/g, "").trim() && !/<img/.test(piece);
+          if (pieces.length === 1 || !empty) {
+            if (empty && heading) return;                         /* empty headings add nothing */
+            out += `<${tag}${attrs}>${empty ? "<br>" : piece}</${tag}>`;
+          }
+        });
+        /* a section break that starts a new page */
+        const sect = pPr && wKid(pPr, "sectPr");
+        if (sect && (wAttr(wKid(sect, "type"), "val") || "nextPage") !== "continuous") out += PAGE_BREAK_HTML;
+        return { kind: "block", html: out };
+      }
+
+      const DOCX_OL_TYPE = { lowerLetter: "a", upperLetter: "A", lowerRoman: "i", upperRoman: "I" };
+
+      function docxNumLevel(numbering, numId, ilvl) {
+        const num = numbering.nums[numId];
+        const abstract = num && numbering.abstract[num.abstractId];
+        return abstract ? abstract[String(ilvl)] || null : null;
+      }
+
+      /* Container (body / table cell) -> HTML, folding consecutive list paragraphs
+         into properly nested <ul>/<ol> elements. */
+      async function docxBlocksToHtml(parent, ctx) {
+        let html = "";
+        const stack = [];                              /* open lists: { tag, level, numId } */
+        const closeAbove = (level) => { while (stack.length && stack[stack.length - 1].level > level) html += "</li></" + stack.pop().tag + ">"; };
+
+        const nodes = docxFlatten(parent);
+        for (let n = 0; n < nodes.length; n++) {
+          const node = nodes[n];
+          if (node.localName === "p") {
+            const item = await docxParagraph(node, ctx);
+            if (item.kind === "list") {
+              closeAbove(item.level);
+              const tag = item.ordered ? "ol" : "ul";
+              const top = stack[stack.length - 1];
+              const counterKey = item.numId + ":" + item.level;
+              if (top && top.level === item.level && top.numId === item.numId && top.tag === tag) html += "</li>";
+              else {
+                if (top && top.level === item.level) html += "</li></" + stack.pop().tag + ">";
+                /* a list that resumes after other content continues counting; deeper counters restart */
+                const seen = ctx.counters[counterKey] || 0;
+                const start = seen ? seen + 1 : item.start;
+                const attrs = item.ordered ? (start !== 1 ? ` start="${start}"` : "") + (DOCX_OL_TYPE[item.fmt] ? ` type="${DOCX_OL_TYPE[item.fmt]}"` : "") : "";
+                html += `<${tag}${attrs}>`;
+                stack.push({ tag, level: item.level, numId: item.numId });
+              }
+              ctx.counters[counterKey] = (ctx.counters[counterKey] || 0) + 1;
+              Object.keys(ctx.counters).forEach((k) => { const [id, lv] = k.split(":"); if (id === item.numId && parseInt(lv, 10) > item.level) delete ctx.counters[k]; });
+              html += `<li${item.css.length ? ` style="${item.css.join(";")}"` : ""}>${item.html || "<br>"}`;
+            } else {
+              closeAbove(-1);
+              html += item.html;
+            }
+          } else if (node.localName === "tbl") {
+            closeAbove(-1);
+            html += await docxTableHtml(node, ctx);
+            if (!nodes[n + 1] || nodes[n + 1].localName !== "p") html += "<p><br></p>";    /* keep a place to type after the table */
+          }
+        }
+        closeAbove(-1);
+        return html;
+      }
+
+      /* <w:tbl> -> <table>, turning vertical merges into rowspan. */
+      async function docxTableHtml(tbl, ctx) {
+        const open = {};                               /* grid column -> cell currently spanning rows */
+        const rows = [];
+        for (const tr of wKids(tbl, "tr")) {
+          const trPr = wKid(tr, "trPr");
+          const header = !!(trPr && wOn(wKid(trPr, "tblHeader")));
+          let col = trPr && wKid(trPr, "gridBefore") ? parseInt(wAttr(wKid(trPr, "gridBefore"), "val"), 10) || 0 : 0;
+          const cells = [];
+          for (const tc of docxFlatten(tr).filter((x) => x.localName === "tc")) {
+            const tcPr = wKid(tc, "tcPr");
+            const colspan = tcPr && wKid(tcPr, "gridSpan") ? parseInt(wAttr(wKid(tcPr, "gridSpan"), "val"), 10) || 1 : 1;
+            const merge = tcPr && wKid(tcPr, "vMerge");
+            if (merge && wAttr(merge, "val") !== "restart") {          /* continuation of the cell above */
+              if (open[col]) open[col].rowspan++;
+              col += colspan;
+              continue;
+            }
+            const fill = tcPr && wAttr(wKid(tcPr, "shd"), "fill");
+            const cell = {
+              colspan, rowspan: 1, header,
+              bg: fill && /^[0-9a-f]{6}$/i.test(fill) ? "#" + fill : null,
+              html: (await docxBlocksToHtml(tc, ctx)) || "<p><br></p>"
+            };
+            if (merge) open[col] = cell; else delete open[col];
+            cells.push(cell);
+            col += colspan;
+          }
+          rows.push(cells);
+        }
+        const body = rows.map((cells) => "<tr>" + cells.map((c) => {
+          const tag = c.header ? "th" : "td";
+          return `<${tag}${c.colspan > 1 ? ` colspan="${c.colspan}"` : ""}${c.rowspan > 1 ? ` rowspan="${c.rowspan}"` : ""}${c.bg ? ` style="background:${c.bg}"` : ""}>${c.html}</${tag}>`;
+        }).join("") + "</tr>").join("");
+        return `<table><tbody>${body}</tbody></table>`;
+      }
+
+      /* Page setup of the last section: size (matched to the sizes the editor offers),
+         orientation and margin. */
+      function docxPageSetup(sect) {
+        const result = { size: null, landscape: false, margin: null, note: "" };
+        if (!sect) return result;
+        const sz = wKid(sect, "pgSz"), mar = wKid(sect, "pgMar");
+        if (sz) {
+          const w = parseInt(wAttr(sz, "w"), 10), h = parseInt(wAttr(sz, "h"), 10);
+          if (w > 0 && h > 0) {
+            result.landscape = w > h;
+            const [short, long] = [Math.min(w, h) / 15, Math.max(w, h) / 15];
+            result.size = Object.keys(PAGE_SIZES).find((n) => Math.abs(PAGE_SIZES[n][0] - short) / short < 0.015 && Math.abs(PAGE_SIZES[n][1] - long) / long < 0.015) || null;
+            if (!result.size) result.note = `Page size ${(short / 96).toFixed(1)} x ${(long / 96).toFixed(1)} in isn't available here; kept ${pageSizeName}`;
+          }
+        }
+        if (mar) {
+          const left = parseInt(wAttr(mar, "left"), 10);
+          if (left > 0) result.margin = Math.min(192, Math.max(24, Math.round(left / 15)));
+        }
+        return result;
+      }
+
+      async function importDocx(buffer) {
+        const bytes = new Uint8Array(buffer);
+        if (bytes[0] === 0xD0 && bytes[1] === 0xCF) throw new Error("This is an old binary .doc file. Open it in Word or LibreOffice and save it as .docx first.");
+        const JSZip = await loadLibrary("jszip");
+        let zip;
+        try { zip = await JSZip.loadAsync(buffer); }
+        catch (error) { throw new Error("This file isn't a valid .docx document."); }
+        const read = async (path) => { const f = zip.file(path); return f ? f.async("string") : null; };
+        const documentXml = await read("word/document.xml");
+        if (!documentXml) throw new Error("This doesn't look like a Word .docx file (word/document.xml is missing).");
+
+        const doc = docxXml(documentXml);
+        const ctx = {
+          zip,
+          styles: docxParseStyles(await read("word/styles.xml")),
+          numbering: docxParseNumbering(await read("word/numbering.xml")),
+          rels: docxParseRels(await read("word/_rels/document.xml.rels")),
+          footnotes: docxParseNotes(await read("word/footnotes.xml"), "footnote"),
+          endnotes: docxParseNotes(await read("word/endnotes.xml"), "endnote"),
+          counters: {}, fields: [], noteCount: 0, noteList: [], warnings: new Set()
+        };
+        const body = doc.getElementsByTagNameNS(W_NS, "body")[0];
+        if (!body) throw new Error("The document has no body.");
+
+        let html = await docxBlocksToHtml(body, ctx);
+        ctx.noteList.forEach((n) => {
+          html += `<p class="note" data-kind="${n.kind}" contenteditable="false"><sup>${n.n}</sup> ${escapeHtml(n.text)}</p>`;
+        });
+        const sect = [...body.children].filter((c) => c.localName === "sectPr").pop() || null;
+        return { html, page: docxPageSetup(sect), warnings: [...ctx.warnings] };
+      }
+
+      /* Opens a .docx chosen in File > Open. */
+      async function openDocx(file) {
+        toast("Opening " + file.name + "…");
+        let result;
+        try {
+          result = await importDocx(await file.arrayBuffer());
+        } catch (error) {
+          console.error("OpenWriter: .docx import failed", error);
+          openDialog("Couldn't open " + file.name, `<p>${escapeHtml(error.message)}</p>`);
+          return;
+        }
+        if (wordCount() > 0) saveVersion("Before opening " + file.name, true);   /* nothing is lost silently */
+        editor.innerHTML = sanitizeHtml(result.html) || "<p><br></p>";
+        savedRange = null;
+        const { page } = result;
+        if (page.size) pageSizeName = page.size;
+        if (page.size) landscape = page.landscape;
+        if (page.margin) { pageMargin = page.margin; document.documentElement.style.setProperty("--page-margin", pageMargin + "px"); }
+        applyPageSize();
+        const name = file.name.replace(/\.[^.]+$/, "");
+        $("doc-name").value = name;
+        document.title = name + " - OpenWriter";
+        UndoStack.reset();
+        refresh();
+        renderComments();
+        Autosave.schedule();
+        const notes = [...result.warnings, page.note].filter(Boolean);
+        toast("Opened " + file.name + (notes.length ? ". " + notes[0] : ""));
+      }
+
+      /* ---------- D. PDF / print: page size and margins ---------- */
+      /* Printing (and "Save as PDF" in the print dialog) follows an @page rule that
+         mirrors the document's page size, orientation and margins. */
+      const PRINT_SIZE_NAMES = { Letter: "letter", A4: "A4", Legal: "legal", A5: "A5" };
+
+      function updatePrintPageRule() {
+        let style = document.getElementById("print-page-rule");
+        if (!style) {
+          style = document.createElement("style");
+          style.id = "print-page-rule";
+          document.head.appendChild(style);
+        }
+        style.textContent = `@page { size: ${PRINT_SIZE_NAMES[pageSizeName] || "letter"} ${landscape ? "landscape" : "portrait"}; margin: ${(pageMargin / 96).toFixed(3)}in; }`;
+      }
+      window.addEventListener("beforeprint", updatePrintPageRule);
+
+      function printDocument() {
+        updatePrintPageRule();
+        toast("In the print dialog, choose \"Save as PDF\" as the destination");
+        setTimeout(() => window.print(), 350);
+      }
+
 
       /* ---------- Bookmarks ---------- */
       bind("Bookmarks", () => {
@@ -3698,6 +4828,11 @@
       /* ---------- Top bar: launcher, account, pills ---------- */
       const openInput = $("open-input");
       function openFile(file) {
+        if (/\.docx$/i.test(file.name)) { openDocx(file); return; }
+        if (/\.doc$/i.test(file.name)) {
+          openDialog("Can't open .doc files", "<p>This is the old binary Word format. Open it in Word or LibreOffice and save it as <b>.docx</b>, then open that file here.</p>");
+          return;
+        }
         const reader = new FileReader();
         reader.onerror = () => toast("Couldn't read that file");
         reader.onload = () => {
@@ -3759,6 +4894,7 @@
         const items = [
           ["Copy as text", "Plain text, ready to paste anywhere", () => copy(text(), "Text copied")],
           ["Copy as HTML", "Keeps headings, lists and formatting", () => copy(html(), "HTML copied")],
+          ["Download as Word (.docx)", "Opens in Word, Google Docs and LibreOffice", () => exportDocument("docx")],
           ["Download as HTML", "A file you can send or open in a browser", () => exportDocument("html")],
           ["Download as text", "A plain .txt file", () => exportDocument("txt")],
           ["Send by email", "Opens your mail app with the text", () => { location.href = "mailto:?subject=" + encodeURIComponent(name()) + "&body=" + encodeURIComponent(text().slice(0, 1800)); }]
@@ -3820,6 +4956,7 @@
       $("view-dark").classList.toggle("on", document.body.classList.contains("dark"));
       $("spell-btn").classList.toggle("on", editor.spellcheck);
       sheet.querySelectorAll(".header, .footer").forEach((el) => el.addEventListener("input", () => Autosave.schedule()));
+      updatePrintPageRule();
       UndoStack.reset();
       refresh();
       Autosave.restore().then((restored) => {

@@ -190,7 +190,8 @@
     }
 
     .docname input {
-      width: 110px;
+      width: 150px;
+      min-width: 0;
       max-width: 40vw;
       padding: 6px 8px;
       border: 0;
@@ -342,7 +343,7 @@
       display: none;
       flex: none;
       align-items: stretch;
-      height: 96px;
+      height: 108px;
       margin: 6px 12px 10px;
       padding: 6px 4px 6px 6px;
       border: 1px solid var(--line);
@@ -1207,6 +1208,126 @@
       /* A manual page break forces a new printed page; the dashed marker is hidden. */
       #page .page-break { break-after: page; height: 0; margin: 0; padding: 0; border: 0; overflow: hidden; font-size: 0; color: transparent; }
     }
+
+    /* Small screens: the top bar used to collapse to 0px (title and settings vanished) */
+    @media (max-width: 860px) {
+      .topbar { grid-template-columns: minmax(0, 1fr) auto; }
+      .search { grid-column: 1 / -1; grid-row: 2; }
+      .topbar-left .docname { min-width: 0; }
+      .docname input { width: 100%; max-width: none; }
+      .tabrow { overflow-x: auto; scrollbar-width: none; }
+      .tabrow > * { flex: none; }
+      .workspace { grid-template-columns: minmax(0, 1fr); }
+      .work-main { padding: 12px 6px 40px; }
+      .search-box { max-width: 100%; }
+      .search-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .statusbar { overflow-x: auto; scrollbar-width: none; }
+      .statusbar * { white-space: nowrap; }
+    }
+
+    /* ================= Motion ================= */
+    :root { --ease: cubic-bezier(.2,.8,.2,1); --t-fast: .14s; }
+    body, .topbar, .tabrow, .statusbar, .sheet, .ow-dlg, .ow-menu { transition: background-color .3s ease, color .3s ease, border-color .3s ease; }
+    #page { transition: color .3s ease; }
+    button, .tab, .rbtn, .pill, .menu-item, .ow-mi, .ow-btn, .icon-btn, .avatar, .nav-item, .sp-btn, .comment-card, .cg, .sw {
+      transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+    }
+    .rbtn:active:not(:disabled), .pill:active, .ow-btn:active, .icon-btn:active { transform: scale(.96); }
+    input[type="text"], input[type="number"], input[type="url"], select, textarea { transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease, background-color var(--t-fast) ease; }
+    .ow-dlg input:focus, .ow-dlg textarea:focus, .ow-dlg select:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); border-color: var(--accent); }
+    .sheet { transition: width .2s ease, background-color .3s ease; }
+
+    @keyframes ow-ribbon-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .ribbon.on { animation: ow-ribbon-in .24s var(--ease); }
+    .ribbon { transition: height .26s var(--ease), margin .26s var(--ease), padding .26s var(--ease), border-width .26s ease, opacity .2s ease, background-color .3s ease, border-color .3s ease; }
+    body.ribbon-collapsed .ribbon.on {
+      display: flex; height: 0; margin-top: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; border-width: 0;
+      opacity: 0; visibility: hidden; overflow: hidden;
+      transition: height .26s var(--ease), margin .26s var(--ease), padding .26s var(--ease), border-width .26s ease, opacity .2s ease, visibility 0s .26s;
+    }
+
+    .menu { display: block; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-8px) scale(.98); transform-origin: top left;
+      transition: opacity .16s ease, transform .2s var(--ease), visibility 0s .2s, background-color .3s ease; }
+    .menu.on { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: opacity .16s ease, transform .2s var(--ease), visibility 0s, background-color .3s ease; }
+
+    .sidebar { display: flex; flex-direction: column; width: 0; border-left-width: 0; opacity: 0; visibility: hidden;
+      transition: width .28s var(--ease), opacity .2s ease, border-left-width .28s ease, visibility 0s .28s, background-color .3s ease; }
+    .sidebar > * { min-width: 272px; }
+    body.show-comments .sidebar { width: 272px; border-left-width: 1px; opacity: 1; visibility: visible;
+      transition: width .28s var(--ease), opacity .22s ease .05s, border-left-width .28s ease, visibility 0s, background-color .3s ease; }
+
+    .findbar { display: flex; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-10px);
+      transition: opacity .16s ease, transform .2s var(--ease), visibility 0s .2s; }
+    .findbar.on { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: opacity .16s ease, transform .2s var(--ease), visibility 0s; }
+
+    @keyframes ow-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes ow-fade-out { to { opacity: 0; } }
+    @keyframes ow-pop { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+    @keyframes ow-pop-out { to { opacity: 0; transform: translateY(8px) scale(.97); } }
+    @keyframes ow-drop { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+    @keyframes ow-drop-out { to { opacity: 0; transform: translateY(-4px) scale(.98); } }
+    @keyframes ow-toast-in { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes ow-toast-out { to { opacity: 0; transform: translate(-50%, 8px); } }
+    .ow-ov { animation: ow-fade .18s ease both; }
+    .ow-dlg { animation: ow-pop .26s var(--ease) both; }
+    .ow-ov.out { animation: ow-fade-out .17s ease both; pointer-events: none; }
+    .ow-ov.out .ow-dlg { animation: ow-pop-out .17s ease both; }
+    .ow-menu { animation: ow-drop .16s var(--ease) both; transform-origin: top left; }
+    .ow-menu.out { animation: ow-drop-out .12s ease both; pointer-events: none; }
+    .ow-toast { animation: ow-toast-in .26s var(--ease) both; }
+    .ow-toast.out { animation: ow-toast-out .2s ease both; }
+    .selpop.on { animation: ow-drop .14s var(--ease) both; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
+    }
+    @media print { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+    /* ================= In-app pickers ================= */
+    .chargrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; }
+    .cg { height: 38px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: none; font-size: 18px; line-height: 1; }
+    .cg:hover { background: rgba(128,128,128,.25); transform: scale(1.08); }
+    .ow-pal { padding: 10px; min-width: 0; width: 236px; }
+    .pal-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+    .sw { aspect-ratio: 1; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; cursor: pointer; }
+    .sw:hover { transform: scale(1.2); position: relative; z-index: 1; }
+    .pal-custom { display: flex; gap: 6px; margin-top: 10px; }
+    .pal-hex { flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: transparent; color: var(--text); font: 13px var(--ui-font); }
+
+    /* ================= Search bar ================= */
+    .search-box { position: relative; border: 1px solid transparent; cursor: text; transition: width .26s var(--ease), background-color .2s ease, border-color .2s ease, box-shadow .2s ease; }
+    .search-box:hover { border-color: var(--line-strong); }
+    .search-box:focus-within { width: 100%; background: var(--bg-ribbon); border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+    .search-box input { flex: 1; min-width: 0; height: 18px; padding: 0; border: 0; outline: 0; background: none; color: var(--text); font: inherit; line-height: 18px; text-overflow: ellipsis; }
+    .search-box input::placeholder { color: var(--text-muted); }
+    .search-box .sk { padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 4px; font: 11px var(--ui-font); color: var(--text-muted); transition: opacity .15s ease; }
+    .search-box:focus-within .sk, .search-box.has-q .sk { opacity: 0; width: 0; padding: 0; border: 0; overflow: hidden; }
+    .search-clear { display: none; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: rgba(128,128,128,.3); font-size: 14px; line-height: 1; }
+    .search-box.has-q .search-clear { display: block; }
+    .search-panel { position: absolute; top: calc(100% + 8px); left: 50%; translate: -50% 0; z-index: 1950; width: min(560px, calc(100vw - 24px)); max-height: min(70vh, 480px); overflow: auto; padding: 6px;
+      border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--bg-ribbon); color: var(--text); box-shadow: var(--shadow-md); cursor: default;
+      opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-8px) scale(.98); transform-origin: top center;
+      transition: opacity .16s ease, transform .2s var(--ease), visibility 0s .2s; }
+    .search-box.open .search-panel { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: opacity .16s ease, transform .2s var(--ease), visibility 0s; }
+    .sr-group { padding: 8px 10px 4px; color: var(--text-muted); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+    .sr-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--text); font-size: 13px; text-align: left; cursor: pointer; }
+    .sr-item.active { background: rgba(128,128,128,.24); }
+    .sr-item mark { background: none; color: var(--text-accent); font-weight: 700; }
+    .sr-item .sr-path { margin-left: auto; padding-left: 12px; color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+    .sr-item kbd { margin-left: 8px; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 4px; font: 11px var(--ui-font); color: var(--text-muted); white-space: nowrap; }
+    .sr-empty { padding: 18px 12px; color: var(--text-muted); text-align: center; }
+    .sr-foot { padding: 6px 10px 2px; color: var(--text-muted); font-size: 11px; border-top: 1px solid var(--line); margin-top: 4px; }
+    @media (max-width: 860px) {
+      .search-box .sk, .sr-foot { display: none; }
+      .sidebar { position: absolute; right: 0; top: 0; bottom: 0; z-index: 40; box-shadow: var(--shadow-md); }
+    }
+
+    /* ================= Tab morph ================= */
+    .tabs { position: relative; }
+    .tab.on, .tab.on:hover { border-bottom-color: transparent; }
+    .tab-ind { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; border-radius: 2px; background: var(--text-accent); pointer-events: none;
+      transition: transform .34s var(--ease), width .34s var(--ease), background-color .3s ease; }
+    .ribbon.on { animation: none; }
+    .ribbon-ghost { position: fixed; margin: 0 !important; z-index: 6; pointer-events: none; animation: none !important; transition: none !important; }
   </style>
 </head>
 <body class="dark">
@@ -1352,9 +1473,12 @@
     </div>
     </div>
     <div class="search">
-      <div class="search-box" id="search-box" role="button" tabindex="0" style="cursor:pointer">
+      <div class="search-box" id="search-box">
         <svg class="ic"><use href="#i-search"/></svg>
-        <span>Search for tools, help, and more (Alt + Q)</span>
+        <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Search for tools, help, and more" aria-label="Search commands, shortcuts and your document">
+        <kbd class="sk" aria-hidden="true">Alt Q</kbd>
+        <button class="search-clear" type="button" id="search-clear" aria-label="Clear search">×</button>
+        <div class="search-panel" id="search-results" role="listbox" aria-label="Search results"></div>
       </div>
     </div>
     <div class="topbar-right">
@@ -1989,8 +2113,8 @@
         fileMenu.classList.remove("on");
       }
 
-      function newDocument() {
-        if (!confirm("Start a new blank document? The current text is kept in Version History.")) return;
+      async function newDocument() {
+        if (!(await askConfirm("New document", "Start a new blank document? The current text is kept in Version History.", "New document"))) return;
         if (wordCount() > 0) saveVersion("Before new document", true);
         editor.innerHTML = "<p><br></p>";
         savedRange = null;
@@ -2024,25 +2148,39 @@
         triggerDownload(new Blob([html], { type: "text/html;charset=utf-8" }), name + ".html");
       }
 
-      function insertTable() {
-        const rows = Number(prompt("Number of rows", 3)) || 2;
-        const cols = Number(prompt("Number of columns", 3)) || 2;
+      async function insertTable() {
+        const v = await askInput("Insert table", [
+          { label: "Rows", type: "number", value: 3, min: 1, max: 50 },
+          { label: "Columns", type: "number", value: 3, min: 1, max: 12 }
+        ], "Insert");
+        if (!v) return;
+        const rows = Math.min(50, Math.max(1, Math.round(Number(v[0])) || 2));
+        const cols = Math.min(12, Math.max(1, Math.round(Number(v[1])) || 2));
         let html = "<table>";
         for (let i = 0; i < rows; i++) html += "<tr>" + "<td>&nbsp;</td>".repeat(cols) + "</tr>";
         insertHtml(html + "</table><p><br></p>");
       }
 
-      function insertLink() {
-        const url = prompt("Address", "https://");
-        if (!url) return;
-        const selected = selection().toString();
+      async function insertLink() {
+        const live = selection();
+        const selected = live.rangeCount && editor.contains(live.anchorNode) ? live.toString() : (savedRange ? savedRange.toString() : "");
+        const v = await askInput("Insert link", [{ label: "Address", value: "https://", required: true }], "Insert");
+        if (!v) return;
+        let url = v[0].trim();
+        if (!url || url === "https://") return;
+        if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) url = (url.includes("@") && !url.includes("/") ? "mailto:" : "https://") + url;
+        if (!/^(https?:|mailto:|tel:)/i.test(url)) { toast("Only http(s), mailto and tel links are allowed"); return; }
         if (selected) exec("createLink", url);
-        else insertHtml(`<a href="${escapeHtml(url)}">${escapeHtml(url)}</a>`);
+        else insertHtml(`<a href="${escapeHtml(url)}">${escapeHtml(url.replace(/^(mailto|tel):/i, ""))}</a>`);
+        editor.querySelectorAll("a[href]").forEach((a) => {
+          a.rel = "noopener noreferrer"; a.target = "_blank";
+          if (!selected && a.getAttribute("href") === url) { a.style.removeProperty("font-size"); a.style.removeProperty("background-color"); if (!a.getAttribute("style")) a.removeAttribute("style"); }
+        });
       }
 
-      function insertEquation() {
-        const text = prompt("Equation (plain text, e.g. E = mc^2)");
-        if (text) insertHtml(`<span class="eq" contenteditable="false">${escapeHtml(text)}</span>&nbsp;`);
+      async function insertEquation() {
+        const v = await askInput("Insert equation", [{ label: "Equation (plain text, e.g. E = mc^2)", required: true }], "Insert");
+        if (v) insertHtml(`<span class="eq" contenteditable="false">${escapeHtml(v[0].trim())}</span>&nbsp;`);
       }
 
       function insertToc() {
@@ -2055,11 +2193,22 @@
         });
         editor.insertAdjacentHTML("afterbegin", html + "</div>");
         refresh();
+        paginate();
+        const heads = [...editor.querySelectorAll("h1,h2,h3")], sr = sheet.getBoundingClientRect(), k = sr.height / (sheet.offsetHeight || 1);
+        editor.querySelectorAll(".toc a").forEach((a, i) => {
+          if (!heads[i]) return;
+          const top = (heads[i].getBoundingClientRect().top - sr.top) / k;
+          a.lastElementChild.textContent = Math.max(1, Math.floor(top / PAGE_STEP) + 1);
+        });
       }
 
-      function addComment() {
-        const text = prompt("Comment:");
-        if (!text) return;
+      async function addComment() {
+        restoreSelection();
+        const first = selection();
+        if (!first.rangeCount || first.isCollapsed) { toast("Select some text first, then add a comment"); return; }
+        const v = await askInput("New comment", [{ label: "Comment", multiline: true, required: true }], "Comment");
+        if (!v) return;
+        const text = v[0].trim();
         restoreSelection();
         const sel = selection();
         if (!sel.rangeCount || sel.isCollapsed) { toast("Select some text first, then add a comment"); return; }
@@ -2137,11 +2286,11 @@
         const zoomSelect = document.querySelector('[data-action-change="zoom"]');
         if (zoomSelect) zoomSelect.value = String(Number(scale));
         zoomLabel.textContent = percent + "%";
-        zoomRange.style.setProperty("--fill", ((percent - 50) / 150 * 100) + "%");
+        zoomRange.style.setProperty("--fill", ((percent - 30) / 170 * 100) + "%");
       }
 
       function nudgeZoom(delta) {
-        const next = Math.min(200, Math.max(50, Number(zoomRange.value) + Number(delta)));
+        const next = Math.min(200, Math.max(30, Number(zoomRange.value) + Number(delta)));
         setZoom(next / 100);
       }
 
@@ -2150,14 +2299,78 @@
         return input.dataset.field.startsWith("indent") ? rounded + '"' : rounded + " pt";
       }
 
+      /* Tab switching with a "morph": the underline glides between tabs, buttons that exist in both
+         ribbons travel to their new position, and the rest cross-fade in the direction of travel. */
+      const tabsBox = document.querySelector(".tabs");
+      const tabInd = document.createElement("div");
+      tabInd.className = "tab-ind";
+      tabsBox.appendChild(tabInd);
+      function moveIndicator(animate) {
+        const on = tabsBox.querySelector(".tab.on");
+        if (!on) { tabInd.style.width = "0px"; return; }
+        if (!animate) tabInd.style.transition = "none";
+        tabInd.style.width = on.offsetWidth + "px";
+        tabInd.style.transform = "translateX(" + on.offsetLeft + "px)";
+        if (!animate) { void tabInd.offsetWidth; tabInd.style.transition = ""; }
+      }
+      window.addEventListener("resize", () => moveIndicator(false));
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => moveIndicator(false));
+
+      const morphKey = (el) => el.dataset.action || el.dataset.exec || el.title || "";
+      const EASE = "cubic-bezier(.2,.8,.2,1)";
+
       function showRibbon(name) {
-        document.querySelectorAll(".tab[data-tab]").forEach((tab) => {
-          tab.classList.toggle("on", tab.dataset.tab === name);
-        });
+        const tabs = [...document.querySelectorAll(".tab[data-tab]")];
+        const oldTab = tabs.find((t) => t.classList.contains("on"));
+        const old = document.querySelector(".ribbon.on");
+        const next = document.getElementById("ribbon-" + name);
+        const motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches && old && next && old !== next && !document.body.classList.contains("ribbon-collapsed");
+        let oldRects = null, ghost = null, dir = 1;
+        document.querySelectorAll(".ribbon-ghost").forEach((g) => g.remove());
+        if (motion) {
+          dir = tabs.indexOf(tabs.find((t) => t.dataset.tab === name)) >= tabs.indexOf(oldTab) ? 1 : -1;
+          old.querySelectorAll(".rbtn").forEach((el) => el.getAnimations().forEach((an) => an.cancel()));
+          oldRects = new Map();
+          old.querySelectorAll(".rbtn").forEach((el) => { const k = morphKey(el); if (k && !oldRects.has(k)) oldRects.set(k, el.getBoundingClientRect()); });
+          const r = old.getBoundingClientRect();
+          ghost = old.cloneNode(true);
+          ghost.removeAttribute("id");
+          ghost.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+          ghost.classList.add("ribbon-ghost");
+          ghost.setAttribute("aria-hidden", "true");
+          Object.assign(ghost.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+        }
+        tabs.forEach((tab) => { tab.classList.toggle("on", tab.dataset.tab === name); });
         document.body.classList.remove("ribbon-collapsed");
-        document.querySelectorAll(".ribbon").forEach((ribbon) => {
-          ribbon.classList.toggle("on", ribbon.id === "ribbon-" + name);
+        document.querySelectorAll(".ribbon").forEach((ribbon) => { ribbon.classList.toggle("on", ribbon.id === "ribbon-" + name); });
+        moveIndicator(true);
+        if (!motion) return;
+
+        const nr = next.getBoundingClientRect(), keys = new Set();
+        next.querySelectorAll(".rbtn").forEach((el) => {
+          const k = morphKey(el), from = k && oldRects.get(k), to = el.getBoundingClientRect();
+          if (from && !keys.has(k)) {
+            keys.add(k);
+            const dx = from.left - to.left, dy = from.top - to.top;
+            el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 420, easing: EASE });
+          } else {
+            const wave = Math.max(0, Math.min(1, (to.left - nr.left) / (nr.width || 1)));
+            const delay = (dir > 0 ? wave : 1 - wave) * 170;
+            el.animate([{ opacity: 0, transform: `translateX(${dir * 18}px) scale(.94)` }, { opacity: 1, transform: "none" }], { duration: 320, delay, easing: EASE, fill: "backwards" });
+          }
         });
+        next.querySelectorAll(".group").forEach((g) => g.animate([{ opacity: .35 }, { opacity: 1 }], { duration: 280, easing: "ease-out" }));
+
+        document.body.appendChild(ghost);
+        ghost.querySelectorAll(".rbtn").forEach((el) => {
+          const k = morphKey(el);
+          if (k && keys.has(k)) el.style.visibility = "hidden";
+          else el.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${-dir * 18}px) scale(.94)` }], { duration: 220, easing: "ease-in", fill: "forwards" });
+        });
+        const fade = ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, easing: "ease-in", fill: "forwards" });
+        const kill = () => ghost.remove();
+        fade.onfinish = kill; fade.oncancel = kill;
+        setTimeout(kill, 600);
       }
 
       const actions = {
@@ -2180,22 +2393,24 @@
         "page-color": () => $("page-color-input").click(),
         "switch-bg": () => document.body.classList.toggle("page-light"),
         "zoom-100": () => setZoom(1),
-        "insert-symbol": () => {
-          const symbol = prompt("Symbol", "\u00A9");
+        "insert-symbol": async () => {
+          const symbol = await pickChars("Insert symbol", SYMBOL_SETS);
           if (symbol) insertHtml(escapeHtml(symbol));
         },
-        "insert-emoji": () => {
-          const emoji = prompt("Emoji", "\uD83D\uDE0A");
+        "insert-emoji": async () => {
+          const emoji = await pickChars("Insert emoji", EMOJI_SETS);
           if (emoji) insertHtml(escapeHtml(emoji));
         },
-        "insert-note": (button) => {
-          const text = prompt(button.dataset.kind + " text");
-          if (!text) return;
+        "insert-note": async (button) => {
+          const kind = button.dataset.kind;
+          const v = await askInput("Insert " + kind, [{ label: kind[0].toUpperCase() + kind.slice(1) + " text", required: true }], "Insert");
+          if (!v) return;
+          const text = v[0].trim();
           const count = editor.querySelectorAll(".note").length + 1;
           UndoStack.batch(() => {
             insertHtml(`<sup>${count}</sup>`);
             editor.insertAdjacentHTML("beforeend",
-              `<p class="note" data-kind="${button.dataset.kind}" contenteditable="false"><sup>${count}</sup> ${escapeHtml(text)}</p>`);
+              `<p class="note" data-kind="${kind}" contenteditable="false"><sup>${count}</sup> ${escapeHtml(text)}</p>`);
             refresh();
           });
         },
@@ -2499,10 +2714,12 @@
         t.className = "ow-toast";
         t.textContent = message;
         document.body.appendChild(t);
-        setTimeout(() => t.remove(), 3200);
+        setTimeout(() => { t.classList.add("out"); setTimeout(() => t.remove(), 230); }, 3200);
       }
 
-      function closeMenus() { document.querySelectorAll(".ow-menu").forEach((m) => m.remove()); }
+      function closeMenus() {
+        document.querySelectorAll(".ow-menu:not(.out)").forEach((m) => { m.classList.add("out"); setTimeout(() => m.remove(), 150); });
+      }
 
       function openMenu(anchor, items) {
         closeMenus();
@@ -2530,9 +2747,19 @@
       function openDialog(title, bodyHtml, buttons, opts) {
         const ov = document.createElement("div");
         ov.className = "ow-ov";
-        ov.innerHTML = `<div class="ow-dlg ${opts && opts.wide ? "wide" : ""}" role="dialog" aria-label="${escapeHtml(title)}"><div class="ow-head"><span>${escapeHtml(title)}</span><button class="x" type="button" aria-label="Close">×</button></div><div class="ow-body">${bodyHtml}</div><div class="ow-foot"></div></div>`;
+        ov.innerHTML = `<div class="ow-dlg ${opts && opts.wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}"><div class="ow-head"><span>${escapeHtml(title)}</span><button class="x" type="button" aria-label="Close">×</button></div><div class="ow-body">${bodyHtml}</div><div class="ow-foot"></div></div>`;
         const dlg = ov.firstChild;
-        const close = () => { ov.remove(); document.removeEventListener("keydown", onKey, true); };
+        let closed = false;
+        const close = () => {
+          if (closed) return;
+          closed = true;
+          document.removeEventListener("keydown", onKey, true);
+          ov.classList.add("out");
+          const done = () => ov.remove();
+          ov.addEventListener("animationend", (e) => { if (e.target === ov) done(); });
+          setTimeout(done, 300);
+          if (opts && opts.onClose) opts.onClose();
+        };
         const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
         document.addEventListener("keydown", onKey, true);
         ov.addEventListener("mousedown", (e) => { if (e.target === ov) close(); });
@@ -2554,6 +2781,102 @@
 
       const bind = (title, fn) => document.querySelectorAll('button[title="' + title + '"]').forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); fn(b, e); }));
       const val = (dlg, sel) => dlg.querySelector(sel).value;
+
+      /* ---------- In-app input dialogs (replace the browser's prompt/confirm) ---------- */
+      function askInput(title, fields, okLabel) {
+        return new Promise((resolve) => {
+          const body = fields.map((f, i) => `<label class="f" for="ask-${i}">${escapeHtml(f.label)}</label>` + (f.multiline
+            ? `<textarea id="ask-${i}" placeholder="${escapeHtml(f.placeholder || "")}">${escapeHtml(f.value || "")}</textarea>`
+            : `<input id="ask-${i}" type="${f.type || "text"}"${f.min != null ? ` min="${f.min}"` : ""}${f.max != null ? ` max="${f.max}"` : ""} value="${escapeHtml(String(f.value ?? ""))}" placeholder="${escapeHtml(f.placeholder || "")}" autocomplete="off">`)).join("");
+          const dlg = openDialog(title, body, [{ label: "Cancel" }, { label: okLabel || "OK", primary: true, run: (d) => {
+            const vals = fields.map((f, i) => d.querySelector("#ask-" + i).value);
+            const bad = fields.findIndex((f, i) => f.required && !vals[i].trim());
+            if (bad >= 0) { const el = d.querySelector("#ask-" + bad); el.focus(); el.style.borderColor = "#d13438"; return false; }
+            resolve(vals);
+          } }], { onClose: () => resolve(null) });
+          const first = dlg.querySelector("input, textarea");
+          if (first && first.select) first.select();
+          dlg.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter" || e.shiftKey) return;
+            if (e.target.tagName === "TEXTAREA" && !(e.ctrlKey || e.metaKey)) return;
+            e.preventDefault();
+            dlg.querySelector(".ow-btn.primary").click();
+          });
+        });
+      }
+
+      function askConfirm(title, message, okLabel) {
+        return new Promise((resolve) => {
+          const dlg = openDialog(title, `<p style="margin:0">${escapeHtml(message)}</p>`,
+            [{ label: "Cancel" }, { label: okLabel || "OK", primary: true, run: () => { resolve(true); } }], { onClose: () => resolve(false) });
+          dlg.querySelector(".ow-btn.primary").focus();
+        });
+      }
+
+      const SYMBOL_SETS = [
+        { name: "Common", chars: "© ® ™ § ¶ † ‡ • … – — ‘ ’ “ ” « » ° ½ ¼ ¾ ² ³".split(" ") },
+        { name: "Math", chars: "± × ÷ ≠ ≈ ≤ ≥ ∞ √ ∑ π µ Ω ∆ ∫ ∂ ∈ ∩ ∪".split(" ") },
+        { name: "Currency & arrows", chars: "€ £ ¥ ¢ ₹ ← → ↑ ↓ ↔ ⇒ ⇔ ✓ ✗ ★ ☆ ♥ ♦".split(" ") }
+      ];
+      const EMOJI_SETS = [
+        { name: "Faces", chars: "😀 😃 😄 😁 😅 😂 🙂 😉 😊 😍 🤔 😎 😢 😭 😡 😴 🤯 🥳".split(" ") },
+        { name: "Things", chars: "👍 👎 👏 🙏 💪 👀 🔥 ⭐ ✨ 🎉 ❤️ 💡 ✅ ❌ ⚠️ 📌 📎 📅 📝 📚 💻 🚀 🌍 ☀️ 🌙 ☕ 🍕 🎵".split(" ") }
+      ];
+      function pickChars(title, sets) {
+        return new Promise((resolve) => {
+          const body = sets.map((g) => `<label class="f">${escapeHtml(g.name)}</label><div class="chargrid">${g.chars.map((c) => `<button type="button" class="cg" data-ch="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join("")}</div>`).join("")
+            + `<label class="f" for="pc-custom">Or type or paste your own</label><div style="display:flex;gap:8px"><input id="pc-custom" type="text" autocomplete="off"><button type="button" class="ow-btn primary" id="pc-add">Insert</button></div>`;
+          const dlg = openDialog(title, body, [{ label: "Close" }], { onClose: () => resolve(null) });
+          dlg.addEventListener("click", (e) => { const b = e.target.closest(".cg"); if (b) { resolve(b.dataset.ch); dlg.close(); } });
+          const add = () => { const v = dlg.querySelector("#pc-custom").value; if (v) { resolve(v); dlg.close(); } };
+          dlg.querySelector("#pc-add").addEventListener("click", add);
+          dlg.querySelector("#pc-custom").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } });
+        });
+      }
+
+      /* ---------- In-app colour palette (replaces the browser's colour picker) ---------- */
+      const hsl2hex = (h, sat, l) => {
+        sat /= 100; l /= 100;
+        const k = (n) => (n + h / 30) % 12, a = sat * Math.min(l, 1 - l);
+        const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+        return "#" + [f(0), f(8), f(4)].map((x) => Math.round(x * 255).toString(16).padStart(2, "0")).join("");
+      };
+      const PALETTE = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => hsl2hex(0, 0, i * 100 / 9))
+        .concat([28, 45, 62, 80].flatMap((l) => [0, 36, 72, 108, 144, 180, 216, 252, 288, 324].map((h) => hsl2hex(h, 75, l))));
+      let lastPoint = { x: window.innerWidth / 2, y: 120 };
+      document.addEventListener("pointerdown", (e) => { lastPoint = { x: e.clientX, y: e.clientY }; }, true);
+      function openColorPalette(input) {
+        closeMenus();
+        const menu = document.createElement("div");
+        menu.className = "ow-menu ow-pal";
+        menu.innerHTML = `<div class="pal-grid">${PALETTE.map((c) => `<button type="button" class="sw" style="background:${c}" data-c="${c}" title="${c}" aria-label="${c}"></button>`).join("")}</div>
+          <div class="pal-custom"><input class="pal-hex" type="text" maxlength="7" value="${input.value}" aria-label="Hex colour"><button type="button" class="ow-btn sm primary">Apply</button></div>`;
+        const apply = (hex) => {
+          if (!/^#[0-9a-f]{6}$/i.test(hex)) { toast("Use a colour like #1a73e8"); return; }
+          input.value = hex.toLowerCase();
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+          closeMenus();
+        };
+        menu.addEventListener("mousedown", (e) => { if (!e.target.closest(".pal-hex")) e.preventDefault(); });
+        menu.addEventListener("click", (e) => {
+          const sw = e.target.closest(".sw");
+          if (sw) apply(sw.dataset.c);
+          else if (e.target.closest(".ow-btn")) apply(menu.querySelector(".pal-hex").value.trim());
+        });
+        menu.querySelector(".pal-hex").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); apply(e.target.value.trim()); } });
+        document.body.appendChild(menu);
+        let r = (input.closest("label") || input).getBoundingClientRect();
+        if (!r.width && !r.height) r = { left: lastPoint.x, top: lastPoint.y - 8, bottom: lastPoint.y + 8 };
+        const left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8));
+        let top = r.bottom + 6;
+        if (top + menu.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - menu.offsetHeight - 6);
+        menu.style.left = left + "px"; menu.style.top = top + "px";
+      }
+      document.addEventListener("click", (e) => {
+        const t = e.target;
+        if (t instanceof HTMLInputElement && t.type === "color") { e.preventDefault(); e.stopPropagation(); openColorPalette(t); }
+      }, true);
 
       function selectedBlocks() {
         const sel = "p,h1,h2,h3,li,blockquote";
@@ -2833,7 +3156,14 @@
           [...n.attributes].forEach((a) => {
             const name = a.name.toLowerCase();
             if (name.startsWith("on") || name === "srcdoc" || (urlAttrs.includes(name) && unsafeUrl(a.value))) n.removeAttribute(a.name);
+            /* ids from a file could hijack the app's own getElementById lookups; only TOC ids are kept */
+            else if ((name === "id" && !/^h\d+$/.test(a.value)) || name === "name") n.removeAttribute(a.name);
           });
+          if (n.hasAttribute("style")) {   /* no full-screen overlays or external CSS urls from imported files */
+            if (/url\(|expression|@import/i.test(n.getAttribute("style"))) n.removeAttribute("style");
+            else { if (/^(fixed|absolute|sticky)$/.test(n.style.position)) n.style.removeProperty("position"); n.style.removeProperty("z-index"); }
+          }
+          if (n.tagName === "A" && n.hasAttribute("target")) n.setAttribute("rel", "noopener noreferrer");
         });
         return doc.body.innerHTML;
       }
@@ -3516,8 +3846,7 @@
       }
 
       /* ---------- 8. Dialogs ---------- */
-      function openShortcuts() {
-        const rows = [
+      const SHORTCUT_ROWS = [
           ["Ctrl + B", "Bold"],
           ["Ctrl + I", "Italic"],
           ["Ctrl + U", "Underline"],
@@ -3533,6 +3862,9 @@
           ["Alt + Q", "Search tools"],
           ["Esc", "Close Find or a dialog; leave Focus mode"]
         ];
+
+      function openShortcuts() {
+        const rows = SHORTCUT_ROWS;
         openDialog("Keyboard shortcuts",
           `<p><small class="m">On a Mac, use ⌘ instead of Ctrl.</small></p>` +
           rows.map(([keys, what]) => `<div class="row"><div class="grow">${escapeHtml(what)}</div><kbd>${escapeHtml(keys)}</kbd></div>`).join(""));
@@ -3565,8 +3897,8 @@
             Autosave.setEnabled(d.querySelector("#st-auto").checked);
             setTheme(val(d, "#st-theme") === "dark");
           } }]);
-        dlg.querySelector("#st-clear").addEventListener("click", () => {
-          if (!confirm("Delete the copy of your document that is saved in this browser? The text in the editor stays until you close the tab.")) return;
+        dlg.querySelector("#st-clear").addEventListener("click", async () => {
+          if (!(await askConfirm("Delete saved copy", "Delete the copy of your document that is saved in this browser? The text in the editor stays until you close the tab.", "Delete"))) return;
           Store.del("doc").then(() => toast("Saved copy deleted"));
         });
       }
@@ -4837,6 +5169,7 @@
         reader.onerror = () => toast("Couldn't read that file");
         reader.onload = () => {
           const raw = String(reader.result);
+          if (raw.slice(0, 4000).includes("\u0000")) { openDialog("Can't open this file", "<p>That looks like a binary file. OpenWriter opens .docx, .html and plain-text files.</p>"); return; }
           const html = /\.html?$/i.test(file.name)
             ? (sanitizeHtml(raw).trim() || "<p><br></p>")
             : raw.split(/\r?\n/).map((l) => `<p>${l ? escapeHtml(l) : "<br>"}</p>`).join("");
@@ -4928,29 +5261,168 @@
           [{ label: "Close" }, { label: "Save new version", primary: true, run: () => { saveVersion(); toast("Version saved"); } }], { wide: true });
       });
 
-      /* ---------- Command search (top bar) ---------- */
-      function openSearch() {
-        const cmds = [...document.querySelectorAll(".ribbon button[title], .menu-item")].map((b) => ({ b, name: (b.title || b.textContent).replace(/\s+/g, " ").trim() })).filter((c) => c.name && !c.b.disabled && !c.b.hasAttribute("data-soon"));
-        const seen = new Set();
-        const uniq = cmds.filter((c) => !seen.has(c.name) && seen.add(c.name));
-        const dlg = openDialog("Search tools", `<input id="cs-q" type="text" placeholder="Type a command, e.g. table, bold, margins…" autocomplete="off"><div id="cs-res" style="margin-top:8px"></div>`, [{ label: "Close" }]);
-        const draw = () => {
-          const q = val(dlg, "#cs-q").toLowerCase().trim();
-          const res = uniq.filter((c) => !q || c.name.toLowerCase().includes(q)).slice(0, 8);
-          dlg.querySelector("#cs-res").innerHTML = res.map((c, i) => `<button class="nav-item" data-c="${uniq.indexOf(c)}">${escapeHtml(c.name)}</button>`).join("") || "<small class='m'>No matching tools</small>";
+      /* ---------- Search bar: commands, shortcuts, export/import, document ---------- */
+      const SB = { box: $("search-box"), input: $("search-input"), panel: $("search-results"), clear: $("search-clear") };
+      let sbItems = [], sbActive = 0;
+
+      const FILE_ITEMS = {
+        "new-doc": ["New document", "create blank start fresh"],
+        "open-file": ["Open file…", "import upload load docx html txt text"],
+        "export:docx": ["Save as Word document (.docx)", "export download word microsoft"],
+        "export:pdf": ["Save as PDF / Print", "export print pdf"],
+        "export:html": ["Save as web page (.html)", "export download website"],
+        "export:txt": ["Save as plain text (.txt)", "export download text"]
+      };
+      const SHORTCUT_ALIASES = { replace: "find and replace", "print / save as pdf": "print or save as pdf", "save as pdf / print": "print or save as pdf" };
+      const shortcutFor = (name) => {
+        const n = name.toLowerCase(), alias = SHORTCUT_ALIASES[n];
+        const row = SHORTCUT_ROWS.find(([, what]) => what.toLowerCase() === n || what.toLowerCase() === alias);
+        return row ? row[0].split("  or  ")[0] : "";
+      };
+
+      function collectCommands() {
+        const tabNames = {};
+        document.querySelectorAll(".tab[data-tab]").forEach((t) => { tabNames[t.dataset.tab] = t.textContent.trim(); });
+        const out = [], seen = new Set();
+        const add = (el, name, path, group, kw) => {
+          const key = name.toLowerCase();
+          if (!name || seen.has(key)) return;
+          seen.add(key);
+          out.push({ name, path, group, kw: kw || "", kb: shortcutFor(name), run: () => {
+            const ribbon = el.closest(".ribbon");
+            if (ribbon && !ribbon.classList.contains("on")) showRibbon(ribbon.id.replace("ribbon-", ""));
+            requestAnimationFrame(() => el.click());
+          } });
         };
-        const run = (i) => { dlg.close(); setTimeout(() => uniq[i].b.click(), 0); };
-        dlg.querySelector("#cs-q").addEventListener("input", draw);
-        dlg.querySelector("#cs-q").addEventListener("keydown", (e) => { if (e.key === "Enter") { const f = dlg.querySelector("[data-c]"); if (f) run(f.dataset.c); } });
-        dlg.addEventListener("click", (e) => { const b = e.target.closest("[data-c]"); if (b) run(b.dataset.c); });
-        draw();
+        document.querySelectorAll("#file-menu .menu-item").forEach((el) => {
+          const key = el.dataset.action === "export" ? "export:" + el.dataset.format : el.dataset.action;
+          const o = FILE_ITEMS[key];
+          const name = o ? o[0] : el.textContent.replace(/\s+/g, " ").trim();
+          add(el, name, "File", "File", o ? o[1] : "");
+        });
+        document.querySelectorAll(".ribbon button[title]").forEach((el) => {
+          if (el.disabled || el.hasAttribute("data-soon")) return;
+          const name = el.title.replace(/\s*\([^)]*\)\s*$/, "").trim();
+          const ribbon = el.closest(".ribbon");
+          add(el, name, tabNames[ribbon.id.replace("ribbon-", "")] || "", ribbon.id === "ribbon-help" ? "Help" : "Tools");
+        });
+        document.querySelectorAll(".topbar button[title], .tabrow .pill").forEach((el) => {
+          const name = (el.title || el.textContent).replace(/\s+/g, " ").trim();
+          add(el, name, "Top bar", "Tools");
+        });
+        Object.entries(tabNames).forEach(([id, label]) => {
+          if (id === "file") return;
+          const key = ("go to " + label + " tab").toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          out.push({ name: "Go to " + label + " tab", path: "Tabs", group: "Tools", kw: "ribbon switch", kb: "", run: () => showRibbon(id) });
+        });
+        SHORTCUT_ROWS.forEach(([keys, what]) => {
+          if (seen.has(what.toLowerCase()) || [...seen].some((n) => shortcutFor(n) && shortcutFor(n) === keys.split("  or  ")[0])) return;
+          seen.add(what.toLowerCase());
+          out.push({ name: what, path: "Shortcut", group: "Shortcuts", kw: "keyboard keys hotkey", kb: keys.split("  or  ")[0], run: () => actions.shortcuts() });
+        });
+        return out;
       }
-      $("search-box").addEventListener("click", openSearch);
-      $("search-box").addEventListener("keydown", (e) => { if (e.key === "Enter") openSearch(); });
-      document.addEventListener("keydown", (e) => { if (e.altKey && e.key.toLowerCase() === "q") { e.preventDefault(); openSearch(); } });
+
+      const sbEsc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const sbMark = (text, toks) => {
+        if (!toks.length) return escapeHtml(text);
+        return text.split(new RegExp("(" + toks.map(sbEsc).join("|") + ")", "ig")).map((p, i) => i % 2 ? "<mark>" + escapeHtml(p) + "</mark>" : escapeHtml(p)).join("");
+      };
+      const sbScore = (c, toks, q) => {
+        const n = c.name.toLowerCase(), hay = n + " " + c.kw.toLowerCase() + " " + c.path.toLowerCase();
+        if (!toks.every((t) => hay.includes(t))) return -1;
+        let sc = n === q ? 100 : n.startsWith(q) ? 60 : n.includes(q) ? 40 : 0;
+        toks.forEach((t) => { if (n.split(/[^a-z0-9]+/).some((w) => w.startsWith(t))) sc += 10; if (n.includes(t)) sc += 5; });
+        return 1 + sc - n.length * 0.001;
+      };
+
+      function sbRender() {
+        const q = SB.input.value.trim().toLowerCase(), toks = q.split(/\s+/).filter(Boolean);
+        SB.box.classList.toggle("has-q", !!q);
+        const cmds = collectCommands();
+        const groups = [];
+        if (!q) {
+          const want = ["New document", "Open file…", "Save as Word document (.docx)", "Save as PDF / Print", "Find", "Replace", "Keyboard shortcuts", "Settings"];
+          groups.push(["Suggested", want.map((w) => cmds.find((c) => c.name.toLowerCase() === w.toLowerCase())).filter(Boolean)]);
+        } else {
+          const ranked = cmds.map((c) => [c, sbScore(c, toks, q)]).filter(([, sc]) => sc >= 0).sort((a, b) => b[1] - a[1]).map(([c]) => c);
+          const by = (g) => ranked.filter((c) => c.group === g);
+          const file = by("File").slice(0, 6), tools = by("Tools").slice(0, 8), help = by("Help").slice(0, 4), keys = by("Shortcuts").slice(0, 4);
+          if (file.length) groups.push(["File, export & import", file]);
+          if (tools.length) groups.push(["Tools", tools]);
+          if (keys.length) groups.push(["Keyboard shortcuts", keys]);
+          if (help.length) groups.push(["Help", help]);
+          const heads = [...editor.querySelectorAll("h1,h2,h3")].filter((h) => toks.every((t) => h.textContent.toLowerCase().includes(t))).slice(0, 4);
+          const docItems = heads.map((h) => ({ name: "Go to: " + h.textContent.trim(), path: h.tagName === "H1" ? "Heading 1" : h.tagName === "H2" ? "Heading 2" : "Heading 3", kb: "", kw: "",
+            run: () => h.scrollIntoView({ block: "center", behavior: "smooth" }) }));
+          docItems.push({ name: "Find “" + SB.input.value.trim() + "” in document", path: "Find", kb: "Ctrl+F", kw: "", run: () => { Find.open(false); const fq = $("fb-q"); fq.value = SB.input.value.trim(); fq.dispatchEvent(new Event("input", { bubbles: true })); } });
+          docItems.push({ name: "Replace “" + SB.input.value.trim() + "”…", path: "Replace", kb: "Ctrl+H", kw: "", run: () => { Find.open(true); const fq = $("fb-q"); fq.value = SB.input.value.trim(); fq.dispatchEvent(new Event("input", { bubbles: true })); $("fb-r").focus(); } });
+          groups.push(["In this document", docItems]);
+        }
+        sbItems = [];
+        let html = "";
+        groups.forEach(([label, items]) => {
+          if (!items.length) return;
+          html += `<div class="sr-group" role="presentation">${escapeHtml(label)}</div>`;
+          items.forEach((it) => {
+            const i = sbItems.push(it) - 1;
+            html += `<button type="button" class="sr-item" role="option" id="sr-${i}" data-i="${i}" tabindex="-1">${sbMark(it.name, label === "In this document" ? [] : toks)}<span class="sr-path">${escapeHtml(it.path)}</span>${it.kb ? `<kbd>${escapeHtml(it.kb)}</kbd>` : ""}</button>`;
+          });
+        });
+        SB.panel.innerHTML = (html || `<div class="sr-empty">No matches</div>`) + `<div class="sr-foot">↑ ↓ to move · Enter to run · Esc to close</div>`;
+        sbSetActive(0);
+      }
+      function sbSetActive(i) {
+        if (!sbItems.length) { SB.input.removeAttribute("aria-activedescendant"); return; }
+        sbActive = (i + sbItems.length) % sbItems.length;
+        SB.panel.querySelectorAll(".sr-item").forEach((el) => {
+          const on = Number(el.dataset.i) === sbActive;
+          el.classList.toggle("active", on);
+          el.setAttribute("aria-selected", on);
+          if (on) { SB.input.setAttribute("aria-activedescendant", el.id); el.scrollIntoView({ block: "nearest" }); }
+        });
+      }
+      function sbOpen() { sbRender(); SB.box.classList.add("open"); SB.input.setAttribute("aria-expanded", "true"); }
+      function sbClose() { SB.box.classList.remove("open"); SB.input.setAttribute("aria-expanded", "false"); }
+      function sbRun(i) {
+        const it = sbItems[i];
+        if (!it) return;
+        sbClose(); SB.input.value = ""; SB.box.classList.remove("has-q"); SB.input.blur();
+        setTimeout(it.run, 80);
+      }
+      SB.input.addEventListener("focus", sbOpen);
+      SB.input.addEventListener("input", sbOpen);
+      SB.input.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown") { e.preventDefault(); if (!SB.box.classList.contains("open")) sbOpen(); else sbSetActive(sbActive + 1); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); sbSetActive(sbActive - 1); }
+        else if (e.key === "Enter") { e.preventDefault(); sbRun(sbActive); }
+        else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (SB.input.value) { SB.input.value = ""; sbOpen(); } else { sbClose(); SB.input.blur(); } }
+        else if (e.key === "Tab") sbClose();
+      });
+      SB.panel.addEventListener("mousedown", (e) => e.preventDefault());
+      SB.panel.addEventListener("mousemove", (e) => { const b = e.target.closest(".sr-item"); if (b && Number(b.dataset.i) !== sbActive) sbSetActive(Number(b.dataset.i)); });
+      SB.panel.addEventListener("click", (e) => { const b = e.target.closest(".sr-item"); if (b) sbRun(Number(b.dataset.i)); });
+      SB.clear.addEventListener("mousedown", (e) => e.preventDefault());
+      SB.clear.addEventListener("click", () => { SB.input.value = ""; SB.input.focus(); sbOpen(); });
+      SB.box.addEventListener("click", () => SB.input.focus());
+      document.addEventListener("pointerdown", (e) => { if (!e.target.closest("#search-box")) sbClose(); });
+      document.addEventListener("keydown", (e) => { if (e.altKey && e.key.toLowerCase() === "q") { e.preventDefault(); SB.input.focus(); SB.input.select(); } });
 
       /* ---------- Startup ---------- */
+      moveIndicator(false);
+      zoomRange.min = 30;
+      let manualZoom = false;
+      zoomRange.addEventListener("input", () => { manualZoom = true; });
+      function fitToScreen() {
+        if (manualZoom || window.innerWidth > 860) return;
+        const w = parseFloat(sheet.style.width) || 816;
+        setZoom(Math.max(0.3, Math.min(1, (window.innerWidth - 16) / w)));
+      }
+      window.addEventListener("resize", fitToScreen);
       setZoom(1);
+      fitToScreen();
       applyPrefs();
       setMode("print");
       $("view-dark").classList.toggle("on", document.body.classList.contains("dark"));
